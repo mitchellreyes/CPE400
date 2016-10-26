@@ -25,6 +25,7 @@ public class NetGui extends JFrame {
         
         netVisualizer = newNetVis;
         
+        // Place frame in middle of screen
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 
         setLocation
@@ -39,6 +40,10 @@ public class NetGui extends JFrame {
                         | UnsupportedLookAndFeelException e) {
             e.printStackTrace();
         }
+        
+        // Create Visualizer window
+        netView = new NetView( this );
+        new Thread(netView).start();
         
         setVisible(true);
     }
@@ -59,15 +64,17 @@ public class NetGui extends JFrame {
         jPanel_TooltipPanel = new javax.swing.JPanel();
         jTextPane_Tooltip = new javax.swing.JTextPane();
         jTextPane_ToolText = new javax.swing.JTextPane();
-        netView = new netvisualizer.Frontend.NetView();
         jMenuBar = new javax.swing.JMenuBar();
         jMenu_File = new javax.swing.JMenu();
         jMenu_File_Settings = new javax.swing.JMenuItem();
         jMenu_File_Exit = new javax.swing.JMenuItem();
+        jMenu_Window = new javax.swing.JMenu();
+        jCheckBoxMenuItem_ShowNetView = new javax.swing.JCheckBoxMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("NetVisualizer");
-        setMinimumSize(new java.awt.Dimension(500, 500));
+        setAlwaysOnTop(true);
+        setMinimumSize(new java.awt.Dimension(500, 75));
         setName("NetGui"); // NOI18N
 
         jToolBar.setBorder(javax.swing.BorderFactory.createEtchedBorder());
@@ -129,7 +136,7 @@ public class NetGui extends JFrame {
         jPanel_TooltipPanelLayout.setHorizontalGroup(
             jPanel_TooltipPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel_TooltipPanelLayout.createSequentialGroup()
-                .addComponent(jTextPane_Tooltip, javax.swing.GroupLayout.DEFAULT_SIZE, 674, Short.MAX_VALUE)
+                .addComponent(jTextPane_Tooltip, javax.swing.GroupLayout.DEFAULT_SIZE, 355, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jTextPane_ToolText, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
@@ -141,19 +148,6 @@ public class NetGui extends JFrame {
                     .addComponent(jTextPane_ToolText, javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(jTextPane_Tooltip, javax.swing.GroupLayout.Alignment.TRAILING))
                 .addGap(0, 0, 0))
-        );
-
-        netView.setBackground(new java.awt.Color(109, 111, 141));
-
-        javax.swing.GroupLayout netViewLayout = new javax.swing.GroupLayout(netView);
-        netView.setLayout(netViewLayout);
-        netViewLayout.setHorizontalGroup(
-            netViewLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-        netViewLayout.setVerticalGroup(
-            netViewLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 437, Short.MAX_VALUE)
         );
 
         jMenu_File.setText("File");
@@ -176,26 +170,34 @@ public class NetGui extends JFrame {
 
         jMenuBar.add(jMenu_File);
 
+        jMenu_Window.setText("Window");
+
+        jCheckBoxMenuItem_ShowNetView.setSelected(true);
+        jCheckBoxMenuItem_ShowNetView.setText("Show NetView");
+        jCheckBoxMenuItem_ShowNetView.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jCheckBoxMenuItem_ShowNetViewActionPerformed(evt);
+            }
+        });
+        jMenu_Window.add(jCheckBoxMenuItem_ShowNetView);
+
+        jMenuBar.add(jMenu_Window);
+
         setJMenuBar(jMenuBar);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jToolBar, javax.swing.GroupLayout.DEFAULT_SIZE, 819, Short.MAX_VALUE)
+            .addComponent(jToolBar, javax.swing.GroupLayout.DEFAULT_SIZE, 490, Short.MAX_VALUE)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(netView, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jPanel_TooltipPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap())
+                .addComponent(jPanel_TooltipPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addComponent(jToolBar, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(netView, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jPanel_TooltipPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
@@ -263,8 +265,35 @@ public class NetGui extends JFrame {
         }
     }//GEN-LAST:event_jMenu_File_SettingsActionPerformed
 
+    private void jCheckBoxMenuItem_ShowNetViewActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jCheckBoxMenuItem_ShowNetViewActionPerformed
+        boolean checked = jCheckBoxMenuItem_ShowNetView.getState();
+        
+        if( checked )
+        {
+            if( netView != null )
+            {
+                netView.showWindow();
+            }
+            else
+            {
+                netView = new NetView( this );
+                new Thread(netView).start();
+            }
+        }
+        else
+        {
+            netView.hideWindow();
+        }
+    }//GEN-LAST:event_jCheckBoxMenuItem_ShowNetViewActionPerformed
+
     
     /* My Functions */
+    public void netViewClosing()
+    {
+        netView = null;
+        jCheckBoxMenuItem_ShowNetView.setState( false );
+    }
+    
     private void setTooltip(String text)
     {
         jTextPane_Tooltip.setText(text);
@@ -301,13 +330,16 @@ public class NetGui extends JFrame {
     
     public SettingsManager settingsManager = null;
     public NetVisualizer netVisualizer = null;
+    public NetView netView = null;
     
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JCheckBoxMenuItem jCheckBoxMenuItem_ShowNetView;
     private javax.swing.JMenuBar jMenuBar;
     private javax.swing.JMenu jMenu_File;
     private javax.swing.JMenuItem jMenu_File_Exit;
     private javax.swing.JMenuItem jMenu_File_Settings;
+    private javax.swing.JMenu jMenu_Window;
     private javax.swing.JPanel jPanel_TooltipPanel;
     private javax.swing.JToolBar.Separator jSeparator1;
     private javax.swing.JToggleButton jTButton_Connection;
@@ -315,6 +347,5 @@ public class NetGui extends JFrame {
     private javax.swing.JTextPane jTextPane_ToolText;
     private javax.swing.JTextPane jTextPane_Tooltip;
     private javax.swing.JToolBar jToolBar;
-    private netvisualizer.Frontend.NetView netView;
     // End of variables declaration//GEN-END:variables
 }
