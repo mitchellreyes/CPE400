@@ -76,6 +76,7 @@ public class NetGui extends JFrame {
         setAlwaysOnTop(true);
         setMinimumSize(new java.awt.Dimension(500, 75));
         setName("NetGui"); // NOI18N
+        setResizable(false);
 
         jToolBar.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         jToolBar.setRollover(true);
@@ -318,14 +319,19 @@ public class NetGui extends JFrame {
         setToolText("");
     }
 
+    public static Tool getTool()
+    {
+        return selectedTool;
+    }
+    
     /* My Variables */
     private static int numTools = 2;
-    private enum Tool
+    public enum Tool
     {
         Nothing, Node, Connection
     }
     
-    private Tool selectedTool;
+    public static Tool selectedTool;
     private javax.swing.JToggleButton[] jToolButtons;
     
     public SettingsManager settingsManager = null;
