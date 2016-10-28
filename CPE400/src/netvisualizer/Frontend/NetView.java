@@ -16,6 +16,9 @@ public class NetView implements Runnable
 {
     public NetGui netGui;
     
+    private GLFWErrorCallback errorCallback;
+    private GLFWKeyCallback keyCallback;
+    
     private long window;
     
     private int WIDTH = 800;
@@ -42,8 +45,10 @@ public class NetView implements Runnable
             System.out.println( "GLFW Window Closing" );
             
             netGui.netViewClosing();
+            glfwDestroyWindow( window );
+            errorCallback.free();
+            keyCallback.free();
             glfwTerminate();
-            glfwSetErrorCallback(null).free();
         }
     }
     
@@ -53,7 +58,8 @@ public class NetView implements Runnable
 
         // Setup an error callback. The default implementation
         // will print the error message in System.err.
-        GLFWErrorCallback.createPrint(System.err).set();
+        errorCallback = GLFWErrorCallback.createPrint(System.err).set();
+        glfwSetErrorCallback( errorCallback );
         
         // Initialize GLFW
         if( !glfwInit() )
@@ -69,19 +75,27 @@ public class NetView implements Runnable
         window = glfwCreateWindow( WIDTH, HEIGHT, "NetView", NULL, NULL );
         if( window == NULL )
         {
+            glfwTerminate();
             throw new RuntimeException( "Failed to create GLFW window" );
         }
         
         // Setup a key callback. It will be called every time a key is pressed, repeated or released.
-        glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
-            /*
-            if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE )
+        keyCallback = new GLFWKeyCallback()
+        {
+            @Override
+            public void invoke( long window, int key, int scancode, int action, int mods )
             {
-                glfwSetWindowShouldClose(window, true); // We will detect this in our rendering loop
+                /*
+                if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE )
+                {
+                    glfwSetWindowShouldClose(window, true); // We will detect this in our rendering loop
+                }
+                */
             }
-            */
-        });
+        };
 
+        glfwSetKeyCallback( window, keyCallback );
+        
         // Center Window
         vidmode = glfwGetVideoMode( glfwGetPrimaryMonitor() );
         glfwSetWindowPos
@@ -94,6 +108,7 @@ public class NetView implements Runnable
         // Make the OpenGL context current
         glfwMakeContextCurrent(window);
         glfwSwapInterval(1);
+        GL.createCapabilities();
         
         // Make window visible
         showWindow();
@@ -101,37 +116,30 @@ public class NetView implements Runnable
     
     private void loop()
     {
-        // This line is critical for LWJGL's interoperation with GLFW's
-        // OpenGL context, or any context that is managed externally.
-        // LWJGL detects the context that is current in the current thread,
-        // creates the GLCapabilities instance and makes the OpenGL
-        // bindings available for use.
-        GL.createCapabilities();
-
+        double time;
+        
         // Set the clear color
         glClearColor(0.3f, 0.3f, 0.5f, 1.0f);
-
-        // Run the rendering loop until the user has attempted to close
-        // the window or has pressed the ESCAPE key.
-        while ( !glfwWindowShouldClose(window) ) {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
-
-            glfwSwapBuffers(window); // swap the color buffers
-
-            // Poll for window events. The key callback above will only be
-            // invoked during this call.
+        
+        while ( !glfwWindowShouldClose(window) )
+        {
+            time = glfwGetTime();
+            
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glfwSwapBuffers(window);
+            
             glfwPollEvents();
         }
     }
     
     public void showWindow()
     {
-        glfwShowWindow(window);
+        glfwShowWindow( window );
     }
     
     public void hideWindow()
     {
-        glfwHideWindow(window);
+        glfwHideWindow( window );
     }
     
     public boolean isWindowVisible()

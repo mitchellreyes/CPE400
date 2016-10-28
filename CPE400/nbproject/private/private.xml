@@ -3,12 +3,10 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Development/NetVisualizer/src/settingsManager.java</file>
-            <file>file:/C:/Development/NetVisualizer/src/node.java</file>
-            <file>file:/C:/Development/NetVisualizer/src/NetView.java</file>
-            <file>file:/C:/Development/NetVisualizer/src/NetGui.java</file>
-            <file>file:/C:/Development/NetVisualizer/src/packetNode.java</file>
-            <file>file:/C:/Development/NetVisualizer/src/netVisMain.java</file>
+            <file>file:/C:/Development/CPE400/CPE400/src/netvisualizer/NetVisualizer.java</file>
+            <file>file:/C:/Development/CPE400/CPE400/src/netvisualizer/Frontend/NetGui.java</file>
+            <file>file:/C:/Development/CPE400/CPE400/src/netvisualizer/Frontend/NetView.java</file>
+            <file>file:/C:/Development/CPE400/CPE400/src/netvisualizer/Frontend/SettingsManager.java</file>
         </group>
     </open-files>
 </project-private>
