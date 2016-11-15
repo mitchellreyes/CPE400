@@ -28,6 +28,8 @@ public class netVisMain extends JFrame{
 		protected JMenu fileMenu;
 			protected JMenuItem aboutBtn;
 			protected JMenuItem newBtn;
+                protected JMenu viewMenu;
+                        protected JCheckBoxMenuItem showViewerBtn;
 
 			
 	//Settings Bar variables
@@ -54,6 +56,9 @@ public class netVisMain extends JFrame{
 	//Base Setting number variables
 	protected int numNodes = 0;
 	protected int numDegree = 0;
+        
+        // NetViewer object variable
+        protected NetViewer netViewer;
 	
 	public static void main(String[] args) {
 		new netVisMain();
@@ -65,9 +70,9 @@ public class netVisMain extends JFrame{
 		System.gc();
 		//###mainWindow initializers
 		mainWindow = new JFrame("Net_Visualizer_CPE400");
-		mainWindow.setSize(1200, 800);
+		mainWindow.setSize(1200, 200);
 		mainWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		mainWindow.setMinimumSize(new Dimension(1200, 800));
+		mainWindow.setMinimumSize(new Dimension(1200, 200));
 		//sets the window to whatever theme you have (i.e. Mac, Win Vista, 7, 8.1, 10, Linux)
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -77,28 +82,27 @@ public class netVisMain extends JFrame{
 		}
 		/////////////////////////////////////////////////////////////////////////////////////
 		
-		//setting the window to the middle of the screen/////////////////////////////////////////////////////////////////////////
+		//setting the window to the upper middle of the screen/////////////////////////////////////////////////////////////////////////
 		Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
-		mainWindow.setLocation(dim.width/2-mainWindow.getSize().width/2, dim.height/2-mainWindow.getSize().height/2);
+		mainWindow.setLocation(dim.width/2-mainWindow.getSize().width/2, dim.height/8-mainWindow.getSize().height/2);
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		
-		//###layer1grid initializers
-		layer1grid = new JPanel();
-		layer1grid.setLayout(new BorderLayout());
-			visualizerSection = new JTextArea("[Placeholder area for visualizer]");
-			visualizerSection.setEditable(false);
-		layer1grid.add(visualizerSection, "Center");
 		
 		buildMenuBar();
 		buildSettingsArea();
 		
-		mainWindow.getContentPane().add(layer1grid, "Center");
 		mainWindow.getContentPane().add(menuBar, "North");
 		mainWindow.getContentPane().add(foundation, "South");
 		mainWindow.setVisible(true);
 	}
 	
+        // A method to let netVisMain know that NetViewer has been closed
+        // Called by NetViewer when it is destroyed
+        public void netViewClosing()
+        {
+            netViewer = null;
+            showViewerBtn.setState(false);
+        }
+        
 	private void newBtnPressed()
 	{
 		int n = JOptionPane.showConfirmDialog(mainWindow, "Are you sure you would like to start a new visualization?",
@@ -106,8 +110,15 @@ public class netVisMain extends JFrame{
 		
 		if(n == JOptionPane.YES_OPTION)
 		{
+                        if(netViewer != null)
+                        {
+                            netViewer.closeWindow();
+                        }
+                        
 			resetBaseSettings();
 			showBaseSettingsDialog();
+                        
+                        createVisualizer();
 		}
 	}
 	
@@ -213,8 +224,13 @@ public class netVisMain extends JFrame{
 				aboutBtn.setAccelerator(KeyStroke.getKeyStroke('T', Toolkit.getDefaultToolkit ().getMenuShortcutKeyMask()));
 			fileMenu.add(newBtn);
 			fileMenu.add(aboutBtn);
-		
+                        viewMenu = new JMenu("View");
+                                showViewerBtn = new JCheckBoxMenuItem("Show Viewer");
+                                showViewerBtn.addActionListener(new ActionHandler());
+                                showViewerBtn.setAccelerator(KeyStroke.getKeyStroke('V', Toolkit.getDefaultToolkit ().getMenuShortcutKeyMask()));
+                        viewMenu.add(showViewerBtn);
 		menuBar.add(fileMenu);
+                menuBar.add(viewMenu);
 	}
 
 	private void buildDialogPanel()
@@ -259,6 +275,10 @@ public class netVisMain extends JFrame{
 	{
 		numNodes = DEFAULT_BASE;
 		numDegree = DEFAULT_BASE;
+                
+                numNodesWanted.setText(Integer.toString(numNodes));
+                numDegreeWanted.setText(Integer.toString(numDegree));
+                
 
 	}
 	
@@ -270,7 +290,19 @@ public class netVisMain extends JFrame{
 		degree = degree.replaceAll(",", "");
 		numNodes = Integer.parseInt(nodes);
 		numDegree = Integer.parseInt(degree);
+                numNodesWanted.setText(nodes);
+                numDegreeWanted.setText(degree);
 	}
+        
+        private void getWantedSettingNums()
+        {
+            String nodes = numNodesWanted.getText();
+            String degree = numDegreeWanted.getText();
+            nodes = nodes.replaceAll(",", "");
+            degree = degree.replaceAll(",", "");
+            numNodes = Integer.parseInt(nodes);
+            numDegree = Integer.parseInt(degree);
+        }
 	
 	private void showBaseSettingsDialog()
 	{
@@ -281,24 +313,69 @@ public class netVisMain extends JFrame{
 			getBaseSettingNums();
 		}
 	}
-	
+        
+        private void createVisualizer()
+        {
+            getWantedSettingNums();
+            netViewer = new NetViewer(this);
+            new Thread(netViewer).start();
+            
+            showViewerBtn.setState(true);
+        }
+        
 	private class ActionHandler implements ActionListener
 	{
+
 		public void actionPerformed(ActionEvent e)
 		{
-			if(e.getSource() == aboutBtn)
-			{
-				JOptionPane.showMessageDialog(mainWindow, "NetVisulizer was created "
-						+ "for the CPE400 class at UNR" + "\n\n" + "Created By: " + "\n" 
-						+ "Mitchell Reyes" + "\n" + "Pattaphol Jirasessakul" + "\n" + "Zachary Waller");
-			}
-			
-			
-			
-			if(e.getSource() == newBtn)
-			{
-				newBtnPressed();
-			}
+                    // File->About
+                    if(e.getSource() == aboutBtn)
+                    {
+                            JOptionPane.showMessageDialog(mainWindow, "NetVisulizer was created "
+                                            + "for the CPE400 class at UNR" + "\n\n" + "Created By: " + "\n" 
+                                            + "Mitchell Reyes" + "\n" + "Pattaphol Jirasessakul" + "\n" + "Zachary Waller");
+                    }
+
+                    // File->New
+                    // New
+                    if(e.getSource() == newBtn || e.getSource() == startNew)
+                    {
+                            newBtnPressed();
+                    }
+                    
+                    // Reset Values to Default
+                    if(e.getSource() == resetBtn)
+                    {
+                        resetBaseSettings();
+                    }
+
+                    // Visualize
+                    if(e.getSource() == visualize)
+                    {
+                        if(netViewer == null)
+                        {
+                            createVisualizer();
+                        }
+                    }
+
+                    // View->Show Viewer
+                    if(e.getSource() == showViewerBtn)
+                    {
+                        boolean checked = showViewerBtn.getState();
+
+                        if(netViewer == null)
+                        {
+                            createVisualizer();
+                        }
+                        else if(checked)
+                        {
+                            netViewer.showWindow();
+                        }
+                        else
+                        {
+                            netViewer.hideWindow();
+                        }
+                    }
 		}
 	}
 	
