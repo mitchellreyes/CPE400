@@ -45,7 +45,9 @@ public class NetViewer implements Runnable
     @Override
     public void run()
     {
-        System.out.println( "GFLW Window Opening" );
+        
+        
+        System.out.println("GFLW Window Opening");
         System.out.println("LWJGL Version: " + Version.getVersion());
         System.out.println("GLFW Version: " + glfwGetVersionString() );
         
@@ -294,13 +296,13 @@ public class NetViewer implements Runnable
             location.x = newX;
             location.y = newY;
             
-            System.out.println( "Creating node at: " + location.x + "," + location.y );
+            //System.out.println( "Creating node at: " + location.x + "," + location.y );
         }
         
         public Node( Point newLocation )
         {
             location = newLocation;
-            System.out.println( "Creating node at: " + location.x + "," + location.y );
+            //System.out.println( "Creating node at: " + location.x + "," + location.y );
         }
         
         @Override
