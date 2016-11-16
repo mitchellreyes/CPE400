@@ -77,7 +77,6 @@ public class netVisMain extends JFrame{
                 Logger.getLogger(netVisMain.class.getName()).log(Level.SEVERE, null, ex);
             }
 
-            
 		System.gc();
 		//###mainWindow initializers
 		mainWindow = new JFrame("Net_Visualizer_CPE400");
