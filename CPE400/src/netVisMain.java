@@ -1,7 +1,11 @@
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.IOException;
 import java.text.NumberFormat;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -67,6 +71,13 @@ public class netVisMain extends JFrame{
 	//default constructor for the window
 	public netVisMain()
 	{
+            try {
+                System.setProperty("org.lwjgl.librarypath", new File("./libs/lwjgl/native").getCanonicalPath());
+            } catch (IOException ex) {
+                Logger.getLogger(netVisMain.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+            
 		System.gc();
 		//###mainWindow initializers
 		mainWindow = new JFrame("Net_Visualizer_CPE400");
