@@ -67,6 +67,11 @@ public class graph {
 		return vertices.get(label);
 	}
 	
+        public HashMap<String, vertex> getVertices()
+        {
+            return vertices;
+        }
+        
 	public boolean addVertex(vertex Vertex, boolean overWrite)
 	{
 		vertex selected = this.vertices.get(Vertex.getLabel());

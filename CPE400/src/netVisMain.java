@@ -6,6 +6,8 @@ import java.awt.event.FocusListener;
 
 import java.text.NumberFormat;
 
+import java.util.ArrayList;
+
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EtchedBorder;
@@ -24,7 +26,7 @@ public class netVisMain extends JFrame{
 	public JFrame mainWindow;
 		protected JPanel layer1grid;
 			//protected JTextArea visualizerSection;
-                        protected graphicsArea graphicsSection;
+                        protected GraphicsArea graphicsSection;
 			
 	public settingsManager settings;
 	public baseOptionDialogWindow baseSettings;
@@ -93,7 +95,7 @@ public class netVisMain extends JFrame{
 		mainWindow.setLocation(dim.width/2-mainWindow.getSize().width/2, dim.height/2-mainWindow.getSize().height/2);
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		
-                graphicsSection = new graphicsArea();
+                graphicsSection = new GraphicsArea(this);
                 
 		buildMenuBar();
 		buildSettingsArea();
@@ -185,7 +187,7 @@ public class netVisMain extends JFrame{
 			
 			//enable all other text fields
 			enableAllFields();
-			initializeGraph();
+			//initializeGraph();
 			//enable visualize button
 		}
 	}
@@ -322,7 +324,7 @@ public class netVisMain extends JFrame{
 		numNodes = Integer.parseInt(one);
 		numDegree = Integer.parseInt(two);
 	}
-	
+        
 	public void initializeGraph()
 	{
 		netGraph = new graph();
@@ -339,7 +341,38 @@ public class netVisMain extends JFrame{
 				//...
 				//netGraph.addEdge(vertex1, vertex2, weight);
 		//Visualize the graph
+                
+                /* TEST CODE FOR GRAPHICS */
+                for(int i = 1; i <= numNodes; i++)
+                {
+                    netGraph.addVertex(new vertex("" + i), false);
+                }
+                netGraph.addEdge
+                    (
+                        netGraph.getVertex("1"),
+                        netGraph.getVertex("2"),
+                        1
+                    );
+                netGraph.addEdge
+                    (
+                        netGraph.getVertex("2"),
+                        netGraph.getVertex("4"),
+                        4
+                    );
+                netGraph.addEdge
+                    (
+                        netGraph.getVertex("4"),
+                        netGraph.getVertex("8"),
+                        10
+                    );
+                /* END TEST CODE */
 	}
+        
+        // Gets netGraph - used by GraphicsArea
+        public graph getGraph()
+        {
+            return netGraph;
+        }
 	
 	public void addConnections()
 	{
@@ -489,51 +522,10 @@ public class netVisMain extends JFrame{
                     // Visualize
                     if(e.getSource() == visualize)
                     {
-                        // Visualize
+                        initializeGraph();
+                        graphicsSection.beginVisualization();
                     }
 
 		}
 	}
-        
-        private class graphicsArea extends JPanel
-	{
-		private static final long serialVersionUID = 1L;
-
-//		private final int ARR_SIZE = 4;
-//
-//        void drawArrow(Graphics g1, int x1, int y1, int x2, int y2) {
-//            Graphics2D g = (Graphics2D) g1.create();
-//
-//            double dx = x2 - x1, dy = y2 - y1;
-//            double angle = Math.atan2(dy, dx);
-//            int len = (int) Math.sqrt(dx*dx + dy*dy);
-//            AffineTransform at = AffineTransform.getTranslateInstance(x1, y1);
-//            at.concatenate(AffineTransform.getRotateInstance(angle));
-//            g.transform(at);
-//
-//            // Draw horizontal arrow starting in (0, 0)
-//            g.drawLine(0, 0, len, 0);
-//            g.fillPolygon(new int[] {len, len-ARR_SIZE, len-ARR_SIZE, len},
-//                          new int[] {0, -ARR_SIZE, ARR_SIZE, 0}, 4);
-//        }
-		
-		public void paint(Graphics g)
-		{
-			super.paintComponent(g);
-			g.setColor(Color.RED);
-			g.drawOval(100, 100, 40, 40);
-			g.setColor(Color.BLACK);
-			g.drawString("A", 115, 125);
-			
-
-			g.setColor(Color.RED);
-			g.drawOval(200, 200, 40, 40);
-			g.setColor(Color.BLACK);
-			g.drawLine(140, 140, 200, 200);
-			
-			//drawArrow(g, 140, 140, 200, 200);
-			
-		}
-	}
-	
 }

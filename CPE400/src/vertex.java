@@ -4,6 +4,8 @@ public class vertex {
 	private ArrayList<edge> neighborhood;
 	private String label;
 	private int degree = 0;
+        
+        public Point position;
 	
 	public vertex(String label)
 	{
