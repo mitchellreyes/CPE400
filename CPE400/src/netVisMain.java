@@ -1,9 +1,14 @@
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+
 import java.io.File;
 import java.io.IOException;
+
 import java.text.NumberFormat;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -11,6 +16,8 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.text.NumberFormatter;
 
 
@@ -22,7 +29,8 @@ public class netVisMain extends JFrame{
 	//###GUI VARIABLES###
 	public JFrame mainWindow;
 		protected JPanel layer1grid;
-			protected JTextArea visualizerSection;
+			//protected JTextArea visualizerSection;
+                        protected graphicsArea graphicsSection;
 			
 	public settingsManager settings;
 	public baseOptionDialogWindow baseSettings;
@@ -61,8 +69,8 @@ public class netVisMain extends JFrame{
 	protected int numNodes = 0;
 	protected int numDegree = 0;
         
-        // NetViewer object variable
-        protected NetViewer netViewer;
+        //Graph variables
+	protected graph netGraph;
 	
 	public static void main(String[] args) {
 		new netVisMain();
@@ -71,18 +79,12 @@ public class netVisMain extends JFrame{
 	//default constructor for the window
 	public netVisMain()
 	{
-            try {
-                System.setProperty("org.lwjgl.librarypath", new File("./libs/lwjgl/native").getCanonicalPath());
-            } catch (IOException ex) {
-                Logger.getLogger(netVisMain.class.getName()).log(Level.SEVERE, null, ex);
-            }
-
 		System.gc();
 		//###mainWindow initializers
 		mainWindow = new JFrame("Net_Visualizer_CPE400");
-		mainWindow.setSize(1200, 200);
+		mainWindow.setSize(1200, 800);
 		mainWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		mainWindow.setMinimumSize(new Dimension(1200, 200));
+		mainWindow.setMinimumSize(new Dimension(1200, 800));
 		//sets the window to whatever theme you have (i.e. Mac, Win Vista, 7, 8.1, 10, Linux)
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -92,27 +94,27 @@ public class netVisMain extends JFrame{
 		}
 		/////////////////////////////////////////////////////////////////////////////////////
 		
-		//setting the window to the upper middle of the screen/////////////////////////////////////////////////////////////////////////
+		//setting the window to the middle of the screen/////////////////////////////////////////////////////////////////////////
 		Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
-		mainWindow.setLocation(dim.width/2-mainWindow.getSize().width/2, dim.height/8-mainWindow.getSize().height/2);
+		mainWindow.setLocation(dim.width/2-mainWindow.getSize().width/2, dim.height/2-mainWindow.getSize().height/2);
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		
+                graphicsSection = new graphicsArea();
+                
 		buildMenuBar();
 		buildSettingsArea();
 		
+                mainWindow.getContentPane().add(graphicsSection, "Center");
 		mainWindow.getContentPane().add(menuBar, "North");
 		mainWindow.getContentPane().add(foundation, "South");
 		mainWindow.setVisible(true);
 	}
-	
-        // A method to let netVisMain know that NetViewer has been closed
-        // Called by NetViewer when it is destroyed
-        public void netViewClosing()
-        {
-            netViewer = null;
-            showViewerBtn.setState(false);
-        }
         
+        /*
+	 * @function: newBtnPressed()
+	 * This function is called when the 'New' button is pressed on the JFrame. It opens a dialog
+	 * that confirms that you will want to clear the graph on the screen and start a new one.
+	 */
 	private void newBtnPressed()
 	{
 		int n = JOptionPane.showConfirmDialog(mainWindow, "Are you sure you would like to start a new visualization?",
@@ -120,18 +122,264 @@ public class netVisMain extends JFrame{
 		
 		if(n == JOptionPane.YES_OPTION)
 		{
-                        if(netViewer != null)
-                        {
-                            netViewer.closeWindow();
-                        }
-                        
-			resetBaseSettings();
-			showBaseSettingsDialog();
-                        
-                        createVisualizer();
+			resetAllSettings();
+			//repaint canvas to blank
 		}
 	}
 	
+        /*
+	 * @function: resetBtnPressed()
+	 * This function is called when the 'Reset Values to Default' button is pressed on the main JFrame.
+	 * If opens a dialog that confirms that you will want to reset the settings to default.
+	 */
+	private void resetBtnPressed()
+	{
+		int n = JOptionPane.showConfirmDialog(mainWindow, "Are you sure you would like to reset values to defualt?",
+				"New Visualization?", JOptionPane.YES_NO_OPTION);
+		
+		if(n == JOptionPane.YES_OPTION)
+		{
+			resetToDefault();
+			//repaint canvas to original graph
+		}
+	}
+	//END of Button Pressed Functions
+        
+	//Support Functions
+	private void resetAllSettings()
+	{
+		numNodesWanted.setValue(DEFAULT_BASE);
+		numDegreeWanted.setValue(DEFAULT_BASE);
+		numNodesWanted.setEditable(true);
+		numDegreeWanted.setEditable(true);
+		numNodesWanted.requestFocus();
+		srcNodes.setText("");
+		destNodes.setText("");
+		linksToBreak.setText("");
+		packetsToSend.setText("");
+		disableAllFields();
+	}
+	
+	private void resetToDefault()
+	{
+		srcNodes.setText("");
+		destNodes.setText("");
+		linksToBreak.setText("");
+		packetsToSend.setText("10");
+	}
+	
+	private boolean checkVisualizationSettings()
+	{
+		if(!srcNodes.getText().equals("") && !destNodes.getText().equals("") && !linksToBreak.getText().equals("") && !packetsToSend.getText().equals(""))
+		{
+			visualize.setEnabled(true);
+			return true;
+		}
+		return false;
+	}
+	
+	private void checkValues()
+	{
+		if(!numNodesWanted.getText().equals("0") && !numDegreeWanted.getText().equals("0"))
+		{
+			//check if degree = numNodes - 1
+			//paint graph
+			
+			//keep the nodes and degrees locked
+			numNodesWanted.setEditable(false);
+			numDegreeWanted.setEditable(false);
+			
+			//enable all other text fields
+			enableAllFields();
+			initializeGraph();
+			//enable visualize button
+		}
+	}
+	
+	private void enableAllFields()
+	{
+		srcNodes.setEditable(true);
+		destNodes.setEditable(true);
+		linksToBreak.setEditable(true);
+		packetsToSend.setEditable(true);
+		startNew.setEnabled(true);
+		//visualize.setEnabled(true);
+	}
+	
+	private void disableAllFields()
+	{
+		srcNodes.setEditable(false);
+		destNodes.setEditable(false);
+		linksToBreak.setEditable(false);
+		packetsToSend.setEditable(false);
+		//startNew.setEnabled(false);
+		visualize.setEnabled(false);		
+	}
+	
+	private void addListeners()
+	{
+		numNodesWanted.addFocusListener(new FocusListener() {
+
+            @Override
+            public void focusGained(FocusEvent e) {
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                checkValues();
+            }
+        });
+				
+		numDegreeWanted.addFocusListener(new FocusListener() {
+
+            @Override
+            public void focusGained(FocusEvent e) {
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+            	checkValues();
+            }
+        });
+						
+		packetsToSend.getDocument().addDocumentListener(new DocumentListener(){
+
+			@Override
+			public void changedUpdate(DocumentEvent arg0) {
+				
+			}
+
+			@Override
+			public void insertUpdate(DocumentEvent arg0) {
+				if(checkVisualizationSettings());
+			}
+
+			@Override
+			public void removeUpdate(DocumentEvent arg0) {
+				if(checkVisualizationSettings());
+			}
+			
+		});
+		
+		linksToBreak.getDocument().addDocumentListener(new DocumentListener(){
+
+			@Override
+			public void changedUpdate(DocumentEvent arg0) {
+				
+			}
+
+			@Override
+			public void insertUpdate(DocumentEvent arg0) {
+				if(checkVisualizationSettings());
+			}
+
+			@Override
+			public void removeUpdate(DocumentEvent arg0) {
+				if(checkVisualizationSettings());
+			}
+			
+		});
+		srcNodes.getDocument().addDocumentListener(new DocumentListener(){
+
+			@Override
+			public void changedUpdate(DocumentEvent arg0) {
+				
+			}
+
+			@Override
+			public void insertUpdate(DocumentEvent arg0) {
+				if(checkVisualizationSettings());
+			}
+
+			@Override
+			public void removeUpdate(DocumentEvent arg0) {
+				if(checkVisualizationSettings());
+			}
+			
+		});
+		destNodes.getDocument().addDocumentListener(new DocumentListener(){
+
+			@Override
+			public void changedUpdate(DocumentEvent arg0) {
+				
+			}
+
+			@Override
+			public void insertUpdate(DocumentEvent arg0) {
+				if(checkVisualizationSettings());
+			}
+
+			@Override
+			public void removeUpdate(DocumentEvent arg0) {
+				if(checkVisualizationSettings());
+			}
+			
+		});
+	
+	}
+	
+	public void getSettings()
+	{
+		String one = numNodesWanted.getText();
+		String two = numDegreeWanted.getText();
+		one = one.replaceAll(",", "");
+		two = two.replaceAll(",", "");
+		
+		numNodes = Integer.parseInt(one);
+		numDegree = Integer.parseInt(two);
+	}
+	
+	public void initializeGraph()
+	{
+		netGraph = new graph();
+		//Build Graph
+			//Get the number of nodes desired
+			//Get the number of degree desired
+			getSettings();
+			//Create vertex
+			//addConnections();
+			//System.out.println(one.getNeighbor(0));
+			//Add vertex to the graph
+				//netGraph.addVertex(vertex1, true);
+				//netGraph.addVertex(vertex2, true);
+				//...
+				//netGraph.addEdge(vertex1, vertex2, weight);
+		//Visualize the graph
+	}
+	
+	public void addConnections()
+	{
+		//Know the degree given D
+		//Have the list of known verticies X1
+		//Have a duplicate list of known verticies X2
+		//Generate a random number between the degree given, D, and number of verticies - 1, R1
+		//For each vertex in X1
+			//Generate a random number for the weight of the edges, R2
+			//while X1.degree does not equal R1 && X1.degree < R1
+				//Generate a random index number for X2
+				//if(addEdge(X1, X2 , R2));
+			
+	}
+	//End of Support Functions
+	
+	//BUILDING THE GUI FUNCTIONS
+	private void buildMenuBar()
+	{
+		//###MenuBar initializers
+		menuBar = new JMenuBar();
+			fileMenu = new JMenu("File");
+				newBtn = new JMenuItem("New");
+				newBtn.addActionListener(new ActionHandler());
+				newBtn.setAccelerator(KeyStroke.getKeyStroke('N', Toolkit.getDefaultToolkit ().getMenuShortcutKeyMask()));
+				aboutBtn = new JMenuItem("About");
+				aboutBtn.addActionListener(new ActionHandler());
+				aboutBtn.setAccelerator(KeyStroke.getKeyStroke('T', Toolkit.getDefaultToolkit ().getMenuShortcutKeyMask()));
+			fileMenu.add(newBtn);
+			fileMenu.add(aboutBtn);
+		
+		menuBar.add(fileMenu);
+	}
+        
 	private void buildSettingsArea()
 	{
 		//Title Creation
@@ -173,7 +421,7 @@ public class netVisMain extends JFrame{
 				srcNodes = new JTextField();
 				destNodes = new JTextField();
 				linksToBreak = new JTextField();
-				packetsToSend = new JTextField();
+				packetsToSend = new JTextField("10");
 				numNodesWanted.setValue(0);
 				numDegreeWanted.setValue(0);
 				numNodesWanted.setHorizontalAlignment(SwingConstants.CENTER);
@@ -182,12 +430,6 @@ public class netVisMain extends JFrame{
 				destNodes.setHorizontalAlignment(SwingConstants.CENTER);
 				linksToBreak.setHorizontalAlignment(SwingConstants.CENTER);
 				packetsToSend.setHorizontalAlignment(SwingConstants.CENTER);
-				numNodesWanted.setOpaque(false);
-				numDegreeWanted.setOpaque(false);
-				srcNodes.setOpaque(false);
-				destNodes.setOpaque(false);
-				linksToBreak.setOpaque(false);
-				packetsToSend.setOpaque(false);
 				numNodesWanted.setBorder(first);
 				numDegreeWanted.setBorder(second);
 				srcNodes.setBorder(third);
@@ -218,126 +460,24 @@ public class netVisMain extends JFrame{
 			southBtnArea.add(resetBtn, "Center");
 			southBtnArea.add(visualize, "Center");
 		foundation.add(southBtnArea, "South");
-			
-	}
-	
-	private void buildMenuBar()
-	{
-		//###MenuBar initializers
-		menuBar = new JMenuBar();
-			fileMenu = new JMenu("File");
-				newBtn = new JMenuItem("New");
-				newBtn.addActionListener(new ActionHandler());
-				newBtn.setAccelerator(KeyStroke.getKeyStroke('N', Toolkit.getDefaultToolkit ().getMenuShortcutKeyMask()));
-				aboutBtn = new JMenuItem("About");
-				aboutBtn.addActionListener(new ActionHandler());
-				aboutBtn.setAccelerator(KeyStroke.getKeyStroke('T', Toolkit.getDefaultToolkit ().getMenuShortcutKeyMask()));
-			fileMenu.add(newBtn);
-			fileMenu.add(aboutBtn);
-                        viewMenu = new JMenu("View");
-                                showViewerBtn = new JCheckBoxMenuItem("Show Viewer");
-                                showViewerBtn.addActionListener(new ActionHandler());
-                                showViewerBtn.setAccelerator(KeyStroke.getKeyStroke('V', Toolkit.getDefaultToolkit ().getMenuShortcutKeyMask()));
-                        viewMenu.add(showViewerBtn);
-		menuBar.add(fileMenu);
-                menuBar.add(viewMenu);
-	}
-
-	private void buildDialogPanel()
-	{
 		
-		//Accepting Numbers only/////////////////////
-		NumberFormat format = NumberFormat.getInstance();
-		NumberFormatter formatter = new NumberFormatter(format);
-		formatter.setValueClass(Integer.class);
-		formatter.setMinimum(0);
-		formatter.setMaximum(Integer.MAX_VALUE);
-		formatter.setAllowsInvalid(false);
-		formatter.setCommitsOnValidEdit(false);
-		/////////////////////////////////////////////
-		
-		//Title Creation
-		TitledBorder second, third;
-		Border f2, f3;
-		f2 = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
-		f3 = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
-		second = BorderFactory.createTitledBorder(f2, "Number of Nodes");
-		third = BorderFactory.createTitledBorder(f3, "Minimum Degree");
-		//////////////////////////
-		basePanel = new JPanel();
-		basePanel.setPreferredSize(new Dimension(300, 75));
-		basePanel.setLayout(new GridLayout(1, 2));
-			numNodesField = new JFormattedTextField(formatter);
-			numNodesField.setOpaque(false);
-			numNodesField.setBorder(second);
-			numNodesField.setValue(numNodes);
-			numNodesField.setHorizontalAlignment(SwingConstants.CENTER);
-			numDegreeField = new JFormattedTextField(formatter);
-			numDegreeField.setOpaque(false);
-			numDegreeField.setBorder(third);
-			numDegreeField.setValue(numDegree);
-			numDegreeField.setHorizontalAlignment(SwingConstants.CENTER);	
-		basePanel.add(numNodesField, "Center");
-		basePanel.add(numDegreeField, "Center");
+                addListeners();
+                disableAllFields();
 	}
-	
-	private void resetBaseSettings()
-	{
-		numNodes = DEFAULT_BASE;
-		numDegree = DEFAULT_BASE;
-                
-                numNodesWanted.setText(Integer.toString(numNodes));
-                numDegreeWanted.setText(Integer.toString(numDegree));
-                
-
-	}
-	
-	private void getBaseSettingNums()
-	{
-		String nodes = numNodesField.getText();
-		String degree = numDegreeField.getText();
-		nodes = nodes.replaceAll(",", "");
-		degree = degree.replaceAll(",", "");
-		numNodes = Integer.parseInt(nodes);
-		numDegree = Integer.parseInt(degree);
-                numNodesWanted.setText(nodes);
-                numDegreeWanted.setText(degree);
-	}
-        
-        private void getWantedSettingNums()
-        {
-            String nodes = numNodesWanted.getText();
-            String degree = numDegreeWanted.getText();
-            nodes = nodes.replaceAll(",", "");
-            degree = degree.replaceAll(",", "");
-            numNodes = Integer.parseInt(nodes);
-            numDegree = Integer.parseInt(degree);
-        }
-	
-	private void showBaseSettingsDialog()
-	{
-		buildDialogPanel();
-		int result = JOptionPane.showConfirmDialog(null, basePanel, "New Visualizer", JOptionPane.OK_CANCEL_OPTION);
-		if(result == JOptionPane.YES_OPTION)
-		{
-			getBaseSettingNums();
-		}
-	}
-        
-        private void createVisualizer()
-        {
-            getWantedSettingNums();
-            netViewer = new NetViewer(this);
-            new Thread(netViewer).start();
-            
-            showViewerBtn.setState(true);
-        }
+        //END OF BUILDING GUI FUNCTIONS
         
 	private class ActionHandler implements ActionListener
 	{
 
 		public void actionPerformed(ActionEvent e)
 		{
+                    // File->New
+                    // New
+                    if(e.getSource() == newBtn || e.getSource() == startNew)
+                    {
+                            newBtnPressed();
+                    }
+                    
                     // File->About
                     if(e.getSource() == aboutBtn)
                     {
@@ -346,46 +486,59 @@ public class netVisMain extends JFrame{
                                             + "Mitchell Reyes" + "\n" + "Pattaphol Jirasessakul" + "\n" + "Zachary Waller");
                     }
 
-                    // File->New
-                    // New
-                    if(e.getSource() == newBtn || e.getSource() == startNew)
-                    {
-                            newBtnPressed();
-                    }
-                    
                     // Reset Values to Default
                     if(e.getSource() == resetBtn)
                     {
-                        resetBaseSettings();
+                        resetBtnPressed();
                     }
 
                     // Visualize
                     if(e.getSource() == visualize)
                     {
-                        if(netViewer == null)
-                        {
-                            createVisualizer();
-                        }
+                        // Visualize
                     }
 
-                    // View->Show Viewer
-                    if(e.getSource() == showViewerBtn)
-                    {
-                        boolean checked = showViewerBtn.getState();
+		}
+	}
+        
+        private class graphicsArea extends JPanel
+	{
+		private static final long serialVersionUID = 1L;
 
-                        if(netViewer == null)
-                        {
-                            createVisualizer();
-                        }
-                        else if(checked)
-                        {
-                            netViewer.showWindow();
-                        }
-                        else
-                        {
-                            netViewer.hideWindow();
-                        }
-                    }
+//		private final int ARR_SIZE = 4;
+//
+//        void drawArrow(Graphics g1, int x1, int y1, int x2, int y2) {
+//            Graphics2D g = (Graphics2D) g1.create();
+//
+//            double dx = x2 - x1, dy = y2 - y1;
+//            double angle = Math.atan2(dy, dx);
+//            int len = (int) Math.sqrt(dx*dx + dy*dy);
+//            AffineTransform at = AffineTransform.getTranslateInstance(x1, y1);
+//            at.concatenate(AffineTransform.getRotateInstance(angle));
+//            g.transform(at);
+//
+//            // Draw horizontal arrow starting in (0, 0)
+//            g.drawLine(0, 0, len, 0);
+//            g.fillPolygon(new int[] {len, len-ARR_SIZE, len-ARR_SIZE, len},
+//                          new int[] {0, -ARR_SIZE, ARR_SIZE, 0}, 4);
+//        }
+		
+		public void paint(Graphics g)
+		{
+			super.paintComponent(g);
+			g.setColor(Color.RED);
+			g.drawOval(100, 100, 40, 40);
+			g.setColor(Color.BLACK);
+			g.drawString("A", 115, 125);
+			
+
+			g.setColor(Color.RED);
+			g.drawOval(200, 200, 40, 40);
+			g.setColor(Color.BLACK);
+			g.drawLine(140, 140, 200, 200);
+			
+			//drawArrow(g, 140, 140, 200, 200);
+			
 		}
 	}
 	
