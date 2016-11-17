@@ -4,13 +4,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 
-import java.io.File;
-import java.io.IOException;
-
 import java.text.NumberFormat;
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.swing.*;
 import javax.swing.border.Border;
