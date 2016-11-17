@@ -46,6 +46,25 @@ public class GraphicsArea extends JPanel
         }
         
         /*
+            Stop Visualization
+        
+            Stops visualization
+            Empties vertex and edge graphics lists
+        */
+        public void stopVisualization()
+        {
+            visualizationBegan = false;
+            
+            timer.stop();
+            timer = null;
+            
+            vertices.clear();
+            edges.clear();
+            
+            repaint();
+        }
+        
+        /*
             Place Vertices
         
             Places all of the vertex graphics in a circle

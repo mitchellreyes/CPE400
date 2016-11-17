@@ -119,7 +119,8 @@ public class netVisMain extends JFrame{
 		if(n == JOptionPane.YES_OPTION)
 		{
 			resetAllSettings();
-			//repaint canvas to blank
+			graphicsSection.stopVisualization();
+                        netGraph = null;
 		}
 	}
 	
