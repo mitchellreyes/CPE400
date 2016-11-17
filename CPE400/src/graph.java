@@ -9,11 +9,11 @@ public class graph {
 		this.edges = new HashMap<Integer, edge>();
 	}
 	
-	public graph(ArrayList<vertex> verticies)
+	public graph(ArrayList<vertex> vertices)
 	{
 		this.vertices = new HashMap<String, vertex>();
 		this.edges = new HashMap<Integer, edge>();
-		for(vertex v : verticies){
+		for(vertex v : vertices){
 			this.vertices.put(v.getLabel(), v);
 		}
 	}
