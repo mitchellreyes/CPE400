@@ -8,6 +8,8 @@ import java.awt.event.ActionListener;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
+import java.time.*;
+
 public class GraphicsArea extends JPanel
 {
         private static final long serialVersionUID = 1L;
@@ -15,6 +17,7 @@ public class GraphicsArea extends JPanel
         
         private ArrayList<VertexGraphic> vertices;
         private ArrayList<EdgeGraphic> edges;
+        private ArrayList<PacketGraphic> packets;
         
         private netVisMain parent;
         
@@ -22,6 +25,7 @@ public class GraphicsArea extends JPanel
         
         private static final int INTERVAL = 16; // 60 times/sec
         private Timer timer;
+        private double deltaT; // delta T between frames, in sec
         
         // Constructor
         public GraphicsArea(netVisMain newParent)
@@ -29,6 +33,7 @@ public class GraphicsArea extends JPanel
             parent = newParent;
             vertices = new ArrayList<>();
             edges = new ArrayList<>();
+            packets = new ArrayList<>();
         }
         
         /*
@@ -42,6 +47,7 @@ public class GraphicsArea extends JPanel
             placeVertices();
             timer = new Timer(INTERVAL, new ActionHandler());
             timer.start();
+            deltaT = 0.0d;
             visualizationBegan = true;
         }
         
@@ -112,6 +118,16 @@ public class GraphicsArea extends JPanel
         }
         
         /*
+            Send Packet
+            
+            Adds a packet to the visualization
+        */
+        public void sendPacket(vertex source, vertex dest)
+        {
+            packets.add(new PacketGraphic(source, dest));
+        }
+        
+        /*
             Paint
         
             Redraws all of the graphics
@@ -124,12 +140,26 @@ public class GraphicsArea extends JPanel
             
             if(visualizationBegan)
             {
-
                 for(EdgeGraphic eg: edges)
                 {
                     eg.draw();
                 }
-
+                
+                // Removing a packet from packets arraylist will cause for loop
+                // to throw exception, arraylist fixes itself on next call
+                // though so no action needed to correct issue
+                try
+                {
+                    for(PacketGraphic pg : packets)
+                    {
+                        pg.draw();
+                    }
+                }
+                catch(Exception e)
+                {
+                    // Do nothing
+                }
+                
                 for(VertexGraphic vg : vertices)
                 {
                     vg.draw();
@@ -155,7 +185,7 @@ public class GraphicsArea extends JPanel
             
             private String label;
             
-            private Point position;
+            private Point position; // position at center
             private int size;
             
             // Parameterized constructor
@@ -168,7 +198,7 @@ public class GraphicsArea extends JPanel
                 label = newLabel;
                 
                 System.out.println
-                    ("Creating new node at: " + position.x + "," + position.y);
+                    ("Creating vertex " + label + " at: " + position.x + "," + position.y);
             }
             
             /*
@@ -196,11 +226,16 @@ public class GraphicsArea extends JPanel
             @Override
             public void draw()
             {
-                graphics.clearRect(position.x-size/2, position.y-size/2, size, size);
+                int offsetX = position.x - (size / 2);
+                int offsetY = position.y - (size / 2);
                 
+                graphics.clearRect(offsetX, offsetY, size, size);
+                
+                // Draw outline
                 graphics.setColor(color);
-                graphics.drawRect(position.x-size/2, position.y-size/2, size, size);
+                graphics.drawRect(offsetX, offsetY, size, size);
                 
+                // Draw label
                 graphics.setColor(Color.BLACK);
                 graphics.drawString(label, position.x-5, position.y+5);
             }
@@ -222,8 +257,8 @@ public class GraphicsArea extends JPanel
             {
                 color = DEFAULT_COLOR;
                 
-                start = newStart;
-                end = newEnd;
+                start = new Point(newStart);
+                end = new Point(newEnd);
                 
                 weight = newWeight;
             }
@@ -243,9 +278,11 @@ public class GraphicsArea extends JPanel
             @Override
             public void draw()
             {
+                // Draw Line
                 graphics.setColor(color);
                 graphics.drawLine(start.x, start.y, end.x, end.y);
                 
+                // Draw weight
                 graphics.drawString
                         (
                             "" + weight,
@@ -255,14 +292,179 @@ public class GraphicsArea extends JPanel
             }
         }
         
+        private class PacketGraphic extends Drawable
+        {
+            // Color color is outline color
+            private final Color DEFAULT_COLOR = Color.BLACK;
+            private final Color DEFAULT_FILL_COLOR = Color.GRAY;
+            private final int DEFAULT_SIZE = 20;
+            private final int DEFAULT_SPEED = 10;
+            
+            private Color fillColor;
+            
+            private Point position;
+            private int size;
+            
+            private Point source;
+            private Point dest;
+            
+            private boolean pointsValid = false;
+            
+            private vertex sourceVertex;
+            private vertex destVertex;
+            
+            private double theta; // angle between source/dest, in radians
+            private double hyp; // hypotenuse - required distance to travel
+            private int speed; // in pixels/sec
+            private int distanceTraveled = 0;
+            
+            /*
+                Parameterized Constructor with vertices
+            */
+            public PacketGraphic(vertex newSourceVert, vertex newDestVert)
+            {
+                color = DEFAULT_COLOR;
+                fillColor = DEFAULT_FILL_COLOR;
+                size = DEFAULT_SIZE;
+                speed = DEFAULT_SPEED;
+                
+                sourceVertex = newSourceVert;
+                destVertex = newDestVert;
+                
+                if(visualizationBegan)
+                {
+                    validatePoints();
+                }
+            }
+            
+            /*
+                Initialize Graphic
+            
+                Called if packet was created before vizualization began
+            */
+            private void validatePoints()
+            {
+                updateVertexPositions();
+                calculateTheta();
+
+                position = new Point(source);
+
+                System.out.println
+                    (
+                        "Sending packet from "
+                        + sourceVertex.getLabel() + " to "
+                        + destVertex.getLabel()
+                        + "; Angle = " + Math.toDegrees(theta)
+                    );
+            }
+            
+            /*
+                Update Positions
+            
+                Gets the current positions of source and dest vertices and
+                recalculates theta
+            */
+            private void updateVertexPositions()
+            {
+                source = new Point(sourceVertex.position);
+                dest = new Point(destVertex.position);
+                
+                pointsValid = true;
+            }
+            
+            /*
+                Calculate Theta
+            
+                Calculates the angle between source and dest vertices
+            */
+            private void calculateTheta()
+            {
+                hyp = Math.sqrt
+                    (
+                        Math.pow(dest.x - source.x, 2) + 
+                        Math.pow(dest.y - source.y, 2)
+                    );
+                
+                theta = Math.atan2(dest.y - source.y, dest.x - source.x);
+            }
+            
+            /*
+                Move
+            
+                Moves the packet along the edge at the correct speed
+                Updates distanceTraveled
+                When distanceTraveled >= hyp, informs backend that packet reached
+                its destination and removes graphic from packet array
+            */
+            private void move()
+            {
+                Point newPos = new Point();
+                
+                newPos.x = (int) (position.x + (Math.cos(theta) * speed));
+                newPos.y = (int) (position.y + (Math.sin(theta) * speed));
+                
+                distanceTraveled += position.distanceTo(newPos);
+                position = newPos;
+                
+                if(distanceTraveled >= hyp)
+                {
+                    // Inform backend that packet reached destination
+                    parent.packetDelivered(sourceVertex, destVertex);
+                    
+                    packets.remove(this);
+                }
+            }
+            
+            /*
+                Get/Set
+            */
+            
+            
+            /*
+                Draw override
+            */
+            @Override
+            public void draw()
+            {
+                if(!pointsValid) validatePoints();
+                
+                int offsetX = position.x - (size / 2);
+                int offsetY = position.y - (size / 2);
+                
+                // Draw Fill
+                graphics.setColor(fillColor);
+                graphics.fillRect(offsetX, offsetY, size, size);
+                
+                // Draw Outline
+                graphics.setColor(color);
+                graphics.drawRect(offsetX, offsetY, size, size);
+                
+                // Move packet along edge
+                move();
+            }
+        }
+        
         /*
             ActionHandler for interval/repaint timer
         */
         private class ActionHandler implements ActionListener
         {
+            private Clock clock;
+            private Instant prevTime;
+            
+            public ActionHandler()
+            {
+                clock = Clock.systemUTC();
+                prevTime = clock.instant();
+            }
+            
             @Override
             public void actionPerformed(ActionEvent e)
             {
+                Instant curTime = clock.instant();
+                deltaT = (curTime.toEpochMilli() - prevTime.toEpochMilli()) / 1000.0d;
+                prevTime = curTime;
+                
                 repaint();
             }
         }

@@ -11,6 +11,8 @@ public class vertex {
 	{
 		this.label = label;
 		this.neighborhood = new ArrayList<edge>();
+                
+                position = new Point();
 	}
 	
 	public String getLabel()

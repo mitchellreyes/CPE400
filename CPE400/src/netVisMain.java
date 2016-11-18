@@ -6,6 +6,7 @@ import java.awt.event.FocusListener;
 
 import java.text.NumberFormat;
 
+import java.util.Random; // can remove after placeholder graphics test code removed
 import java.util.ArrayList;
 
 import javax.swing.*;
@@ -356,16 +357,33 @@ public class netVisMain extends JFrame{
                     );
                 netGraph.addEdge
                     (
-                        netGraph.getVertex("2"),
-                        netGraph.getVertex("4"),
-                        4
+                        netGraph.getVertex("1"),
+                        netGraph.getVertex("3"),
+                        1
                     );
                 netGraph.addEdge
                     (
+                        netGraph.getVertex("1"),
                         netGraph.getVertex("4"),
-                        netGraph.getVertex("8"),
-                        10
+                        1
                     );
+                netGraph.addEdge
+                    (
+                        netGraph.getVertex("2"),
+                        netGraph.getVertex("3"),
+                        1
+                    );
+                netGraph.addEdge
+                    (
+                        netGraph.getVertex("2"),
+                        netGraph.getVertex("4"),
+                        1
+                    );
+                
+                // Create packet in visualizer
+                // graphicsSection.createPacket(source vertex, destination vertex)
+                graphicsSection.sendPacket
+                    (netGraph.getVertex("1"), netGraph.getVertex("2"));
                 /* END TEST CODE */
 	}
         
@@ -373,6 +391,32 @@ public class netVisMain extends JFrame{
         public graph getGraph()
         {
             return netGraph;
+        }
+        
+        /*
+            PLACEHOLDER FOR GRAPHICS TESTING
+        
+            Lets GraphicsArea inform graph that packet transmission animation
+            has completed
+        
+            Placeholder code forwards packet to random neighbor
+        */
+        public void packetDelivered(vertex source, vertex dest)
+        {
+            Random random = new Random();
+            int index = random.nextInt(dest.getNeighborCount() + 1);
+            vertex neighbor;
+            
+            if(!dest.getNeighbor(index).getVertexOne().equals(dest))
+            {
+                neighbor = dest.getNeighbor(index).getVertexOne();
+            }
+            else
+            {
+                neighbor = dest.getNeighbor(index).getVertexTwo();
+            }
+            
+            graphicsSection.sendPacket(dest, neighbor);
         }
 	
 	public void addConnections()
