@@ -359,25 +359,25 @@ public class netVisMain extends JFrame{
                     (
                         netGraph.getVertex("1"),
                         netGraph.getVertex("3"),
-                        1
+                        3
                     );
                 netGraph.addEdge
                     (
                         netGraph.getVertex("1"),
                         netGraph.getVertex("4"),
-                        1
+                        4
                     );
                 netGraph.addEdge
                     (
                         netGraph.getVertex("2"),
                         netGraph.getVertex("3"),
-                        1
+                        2
                     );
                 netGraph.addEdge
                     (
                         netGraph.getVertex("2"),
                         netGraph.getVertex("4"),
-                        1
+                        6
                     );
                 
                 // Create packet in visualizer

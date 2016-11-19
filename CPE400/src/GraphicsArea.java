@@ -9,6 +9,7 @@ import javax.swing.JPanel;
 import javax.swing.Timer;
 
 import java.time.*;
+import java.util.Set;
 
 public class GraphicsArea extends JPanel
 {
@@ -124,7 +125,28 @@ public class GraphicsArea extends JPanel
         */
         public void sendPacket(vertex source, vertex dest)
         {
-            packets.add(new PacketGraphic(source, dest));
+            int weight = findWeight(source, dest);
+            packets.add(new PacketGraphic(source, dest, weight));
+        }
+        
+        /*
+            Find Weight
+        
+            Finds the weight of edge between two vertices
+        */
+        private int findWeight(vertex one, vertex two)
+        {
+            for(edge e : one.getNeighbors())
+            {
+                if(e.getNeighbor(one) == two || e.getNeighbor(two) == one)
+                {
+                    return e.getWeight();
+                }
+            }
+            
+            // TODO: Fix this hack
+            // If edge isn't found return 1 so nothing breaks
+            return 1;
         }
         
         /*
@@ -298,7 +320,7 @@ public class GraphicsArea extends JPanel
             private final Color DEFAULT_COLOR = Color.BLACK;
             private final Color DEFAULT_FILL_COLOR = Color.GRAY;
             private final int DEFAULT_SIZE = 20;
-            private final int DEFAULT_SPEED = 10;
+            private final int DEFAULT_WEIGHT_TIME = 250;
             
             private Color fillColor;
             
@@ -307,26 +329,27 @@ public class GraphicsArea extends JPanel
             
             private Point source;
             private Point dest;
+            private int weight;
             
             private boolean pointsValid = false;
             
             private vertex sourceVertex;
             private vertex destVertex;
             
-            private double theta; // angle between source/dest, in radians
-            private double hyp; // hypotenuse - required distance to travel
-            private int speed; // in pixels/sec
-            private int distanceTraveled = 0;
+            private int timeToTravel;
+            private int timeElapsed;
             
             /*
                 Parameterized Constructor with vertices
             */
-            public PacketGraphic(vertex newSourceVert, vertex newDestVert)
+            public PacketGraphic(vertex newSourceVert, vertex newDestVert, int newWeight)
             {
                 color = DEFAULT_COLOR;
                 fillColor = DEFAULT_FILL_COLOR;
                 size = DEFAULT_SIZE;
-                speed = DEFAULT_SPEED;
+                weight = newWeight;
+                
+                timeToTravel = weight * DEFAULT_WEIGHT_TIME;
                 
                 sourceVertex = newSourceVert;
                 destVertex = newDestVert;
@@ -345,16 +368,16 @@ public class GraphicsArea extends JPanel
             private void validatePoints()
             {
                 updateVertexPositions();
-                calculateTheta();
 
                 position = new Point(source);
+                timeElapsed = 0;
 
                 System.out.println
                     (
                         "Sending packet from "
                         + sourceVertex.getLabel() + " to "
                         + destVertex.getLabel()
-                        + "; Angle = " + Math.toDegrees(theta)
+                        + "; Weight = " + weight
                     );
             }
             
@@ -373,22 +396,6 @@ public class GraphicsArea extends JPanel
             }
             
             /*
-                Calculate Theta
-            
-                Calculates the angle between source and dest vertices
-            */
-            private void calculateTheta()
-            {
-                hyp = Math.sqrt
-                    (
-                        Math.pow(dest.x - source.x, 2) + 
-                        Math.pow(dest.y - source.y, 2)
-                    );
-                
-                theta = Math.atan2(dest.y - source.y, dest.x - source.x);
-            }
-            
-            /*
                 Move
             
                 Moves the packet along the edge at the correct speed
@@ -398,21 +405,33 @@ public class GraphicsArea extends JPanel
             */
             private void move()
             {
-                Point newPos = new Point();
+                double percent = (double) timeElapsed / (double) timeToTravel;
+                Point newPos = lerp(source, dest, percent);
                 
-                newPos.x = (int) (position.x + (Math.cos(theta) * speed));
-                newPos.y = (int) (position.y + (Math.sin(theta) * speed));
-                
-                distanceTraveled += position.distanceTo(newPos);
                 position = newPos;
+                timeElapsed += (deltaT * 1000);
                 
-                if(distanceTraveled >= hyp)
+                if(timeElapsed >= timeToTravel)
                 {
                     // Inform backend that packet reached destination
                     parent.packetDelivered(sourceVertex, destVertex);
                     
                     packets.remove(this);
                 }
+            }
+            
+            /*
+                Lerp
+            
+                Linearly interpolate between two points
+            */
+            private Point lerp(Point start, Point end, double percent)
+            {
+                Point result = new Point();
+                result.x = (int) (start.x + percent * (end.x - start.x));
+                result.y = (int) (start.y + percent * (end.y - start.y));
+
+                return result;
             }
             
             /*
