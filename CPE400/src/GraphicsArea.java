@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -203,7 +204,7 @@ public class GraphicsArea extends JPanel
         private class VertexGraphic extends Drawable
         {
             private final Color DEFAULT_COLOR = Color.RED;
-            private final int DEFAULT_SIZE = 40;
+            private final int DEFAULT_SIZE = 45;
             
             private String label;
             
@@ -258,8 +259,16 @@ public class GraphicsArea extends JPanel
                 graphics.drawRect(offsetX, offsetY, size, size);
                 
                 // Draw label
-                graphics.setColor(Color.BLACK);
-                graphics.drawString(label, position.x-5, position.y+5);
+                java.awt.FontMetrics fm = graphics.getFontMetrics();
+                int strWidth = fm.stringWidth(label);
+                
+                graphics.drawString
+                    (
+                        label,
+                        position.x - strWidth / 2 + 1,
+                        position.y + fm.getAscent() / 2
+                    );
+                
             }
         }
         
@@ -303,14 +312,20 @@ public class GraphicsArea extends JPanel
                 // Draw Line
                 graphics.setColor(color);
                 graphics.drawLine(start.x, start.y, end.x, end.y);
-                
+
                 // Draw weight
-                graphics.drawString
+                java.awt.FontMetrics fm = graphics.getFontMetrics();
+                int wide = fm.charWidth(weight);
+                int tall = fm.getAscent();
+                Point wPos = new Point
                         (
-                            "" + weight,
-                            ((start.x + end.x) / 2) + 5,
-                            ((start.y + end.y) / 2) - 5
+                            (start.x + end.x) / 2,
+                            (start.y + end.y) / 2
                         );
+                
+                graphics.clearRect(wPos.x-wide/2, wPos.y-tall/2, wide, tall);
+                
+                graphics.drawString(""+weight, wPos.x-wide/3, wPos.y+tall/3);
             }
         }
         
