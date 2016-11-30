@@ -6,8 +6,7 @@ import java.awt.event.FocusListener;
 
 import java.text.NumberFormat;
 
-import java.util.Random; // can remove after placeholder graphics test code removed
-import java.util.ArrayList;
+import java.util.Random;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -28,18 +27,12 @@ public class netVisMain extends JFrame{
 		protected JPanel layer1grid;
 			//protected JTextArea visualizerSection;
                         protected GraphicsArea graphicsSection;
-			
-	public settingsManager settings;
-	public baseOptionDialogWindow baseSettings;
 	
 	//MenuBar variables
 	protected JMenuBar menuBar;
 		protected JMenu fileMenu;
 			protected JMenuItem aboutBtn;
 			protected JMenuItem newBtn;
-                protected JMenu viewMenu;
-                        protected JCheckBoxMenuItem showViewerBtn;
-
 			
 	//Settings Bar variables
 	protected JPanel foundation;
@@ -56,11 +49,6 @@ public class netVisMain extends JFrame{
 			protected JPanel placeHold2;
 			protected JButton resetBtn;
 			protected JButton visualize;
-			
-	//Base Setting Dialog variables
-	protected JPanel basePanel;
-		protected JFormattedTextField numNodesField;
-		protected JFormattedTextField numDegreeField;
 		
 	//Base Setting number variables
 	protected int numNodes = 0;
@@ -68,6 +56,7 @@ public class netVisMain extends JFrame{
         
         //Graph variables
 	protected graph netGraph;
+        protected vertex vertices[];
 	
 	public static void main(String[] args) {
 		new netVisMain();
@@ -330,61 +319,18 @@ public class netVisMain extends JFrame{
 	public void initializeGraph()
 	{
 		netGraph = new graph();
-		//Build Graph
-			//Get the number of nodes desired
-			//Get the number of degree desired
-			getSettings();
-			//Create vertex
-			//addConnections();
-			//System.out.println(one.getNeighbor(0));
-			//Add vertex to the graph
-				//netGraph.addVertex(vertex1, true);
-				//netGraph.addVertex(vertex2, true);
-				//...
-				//netGraph.addEdge(vertex1, vertex2, weight);
-		//Visualize the graph
-                
-                /* TEST CODE FOR GRAPHICS */
-                for(int i = 1; i <= numNodes; i++)
+
+                getSettings();
+                vertices = new vertex[numNodes];
+                for(int i = 0; i < vertices.length; i++)
                 {
-                    netGraph.addVertex(new vertex("" + i), false);
+                    vertices[i] = new vertex("Node" + (i+1));
+                    netGraph.addVertex(vertices[i], true);
                 }
-                netGraph.addEdge
-                    (
-                        netGraph.getVertex("1"),
-                        netGraph.getVertex("2"),
-                        1
-                    );
-                netGraph.addEdge
-                    (
-                        netGraph.getVertex("1"),
-                        netGraph.getVertex("3"),
-                        3
-                    );
-                netGraph.addEdge
-                    (
-                        netGraph.getVertex("1"),
-                        netGraph.getVertex("4"),
-                        4
-                    );
-                netGraph.addEdge
-                    (
-                        netGraph.getVertex("2"),
-                        netGraph.getVertex("3"),
-                        2
-                    );
-                netGraph.addEdge
-                    (
-                        netGraph.getVertex("2"),
-                        netGraph.getVertex("4"),
-                        6
-                    );
+                addConnections();
+                System.out.println(netGraph.getEdges());
                 
-                // Create packet in visualizer
-                // graphicsSection.createPacket(source vertex, destination vertex)
-                graphicsSection.sendPacket
-                    (netGraph.getVertex("1"), netGraph.getVertex("2"));
-                /* END TEST CODE */
+                // Graph visualization starts in Visualize button actionhandler
 	}
         
         // Gets netGraph - used by GraphicsArea
@@ -393,45 +339,43 @@ public class netVisMain extends JFrame{
             return netGraph;
         }
         
-        /*
-            PLACEHOLDER FOR GRAPHICS TESTING
+        public void addConnections()
+	{
+		//Generate a random number between the degree given, D, and number of verticies - 1, R1
+		int randDegreeAmt = randNum(numDegree, vertices.length - 1);
+		int randIndexNum, randWeightNum;
+		//For each vertex in X1
+		for(int i = 0; i < vertices.length; i++)
+		{
+			//Generate a random number for the weight of the edges, R2
+			randWeightNum = randNum(1, 5);
+			//while X1.degree does not equal R1 && X1.degree < R1
+			while((vertices[i].getDegree() != randDegreeAmt) && (vertices[i].getDegree() < randDegreeAmt))
+			{
+				//Generate a random index number for X2
+				randIndexNum = randNum(0, vertices.length - 1);
+				if(netGraph.addEdge(vertices[i], vertices[randIndexNum], randWeightNum));
+			}
+
+		}	
+	}
         
+        public int randNum(int min, int max)
+	{
+		Random rand = new Random();
+		int randomNum = rand.nextInt((max - min) + 1) + min;
+		return randomNum;
+	}
+        
+        /*
             Lets GraphicsArea inform graph that packet transmission animation
             has completed
-        
-            Placeholder code forwards packet to random neighbor
         */
         public void packetDelivered(vertex source, vertex dest)
         {
-            Random random = new Random();
-            int index = random.nextInt(dest.getNeighborCount() + 1);
-            vertex neighbor;
-            
-            if(!dest.getNeighbor(index).getVertexOne().equals(dest))
-            {
-                neighbor = dest.getNeighbor(index).getVertexOne();
-            }
-            else
-            {
-                neighbor = dest.getNeighbor(index).getVertexTwo();
-            }
-            
-            graphicsSection.sendPacket(dest, neighbor);
+            // Backend stuff here
         }
-	
-	public void addConnections()
-	{
-		//Know the degree given D
-		//Have the list of known verticies X1
-		//Have a duplicate list of known verticies X2
-		//Generate a random number between the degree given, D, and number of verticies - 1, R1
-		//For each vertex in X1
-			//Generate a random number for the weight of the edges, R2
-			//while X1.degree does not equal R1 && X1.degree < R1
-				//Generate a random index number for X2
-				//if(addEdge(X1, X2 , R2));
-			
-	}
+
 	//End of Support Functions
 	
 	//BUILDING THE GUI FUNCTIONS
