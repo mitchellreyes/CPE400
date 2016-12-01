@@ -1,11 +1,7 @@
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
 
+import java.awt.event.*;
 import java.text.NumberFormat;
-
 import java.util.Random;
 
 import javax.swing.*;
@@ -19,26 +15,27 @@ import javax.swing.text.NumberFormatter;
 
 public class netVisMain extends JFrame{
 	private static final long serialVersionUID = 1L;
-	
-	private static final int DEFAULT_BASE = 0;
-
+	private final int MAX_NODES = 16;
+	private final int MIN_NODES = 2;
+	private final int MIN_DEGREE = 1;
 	//###GUI VARIABLES###
 	public JFrame mainWindow;
 		protected JPanel layer1grid;
 			//protected JTextArea visualizerSection;
-                        protected GraphicsArea graphicsSection;
-	
+			protected GraphicsArea graphicsSection;
+				
 	//MenuBar variables
 	protected JMenuBar menuBar;
 		protected JMenu fileMenu;
 			protected JMenuItem aboutBtn;
 			protected JMenuItem newBtn;
+
 			
 	//Settings Bar variables
 	protected JPanel foundation;
 		protected JPanel centerTextArea;
-			protected JFormattedTextField numNodesWanted;
-			protected JFormattedTextField numDegreeWanted;
+			protected JTextField numNodesWanted;
+			protected JTextField numDegreeWanted;
 			protected JTextField srcNodes;
 			protected JTextField destNodes;
 			protected JTextField linksToBreak;
@@ -51,12 +48,12 @@ public class netVisMain extends JFrame{
 			protected JButton visualize;
 		
 	//Base Setting number variables
-	protected int numNodes = 0;
-	protected int numDegree = 0;
-        
-        //Graph variables
+	protected int numNodes = 2;
+	protected int numDegree = 1;
+	
+	//Graph variables
 	protected graph netGraph;
-        protected vertex vertices[];
+		protected vertex verticies[];
 	
 	public static void main(String[] args) {
 		new netVisMain();
@@ -84,19 +81,42 @@ public class netVisMain extends JFrame{
 		Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
 		mainWindow.setLocation(dim.width/2-mainWindow.getSize().width/2, dim.height/2-mainWindow.getSize().height/2);
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		graphicsSection = new GraphicsArea(this);
 		
-                graphicsSection = new GraphicsArea(this);
-                
 		buildMenuBar();
 		buildSettingsArea();
 		
-                mainWindow.getContentPane().add(graphicsSection, "Center");
+		mainWindow.getContentPane().add(graphicsSection, "Center");
 		mainWindow.getContentPane().add(menuBar, "North");
 		mainWindow.getContentPane().add(foundation, "South");
 		mainWindow.setVisible(true);
+		createNewGraphDialog();
 	}
+	
+	
+	public graph getGraph()
+	{
+		return netGraph;
+	}
+	public void packetDelivered(vertex source, vertex dest)
+    {
+        Random random = new Random();
+        int index = random.nextInt(dest.getNeighborCount() + 1);
+        vertex neighbor;
         
-        /*
+        if(!dest.getNeighbor(index).getVertexOne().equals(dest))
+        {
+            neighbor = dest.getNeighbor(index).getVertexOne();
+        }
+        else
+        {
+            neighbor = dest.getNeighbor(index).getVertexTwo();
+        }
+        
+        graphicsSection.sendPacket(dest, neighbor);
+    }
+	/*
 	 * @function: newBtnPressed()
 	 * This function is called when the 'New' button is pressed on the JFrame. It opens a dialog
 	 * that confirms that you will want to clear the graph on the screen and start a new one.
@@ -109,12 +129,14 @@ public class netVisMain extends JFrame{
 		if(n == JOptionPane.YES_OPTION)
 		{
 			resetAllSettings();
+			//TODO repaint canvas to blank
 			graphicsSection.stopVisualization();
-                        netGraph = null;
+			netGraph = null;
+			createNewGraphDialog();
 		}
 	}
 	
-        /*
+	/*
 	 * @function: resetBtnPressed()
 	 * This function is called when the 'Reset Values to Default' button is pressed on the main JFrame.
 	 * If opens a dialog that confirms that you will want to reset the settings to default.
@@ -127,19 +149,15 @@ public class netVisMain extends JFrame{
 		if(n == JOptionPane.YES_OPTION)
 		{
 			resetToDefault();
-			//repaint canvas to original graph
+			//TODO repaint canvas to original graph
 		}
 	}
 	//END of Button Pressed Functions
-        
+	
+	
 	//Support Functions
 	private void resetAllSettings()
 	{
-		numNodesWanted.setValue(DEFAULT_BASE);
-		numDegreeWanted.setValue(DEFAULT_BASE);
-		numNodesWanted.setEditable(true);
-		numDegreeWanted.setEditable(true);
-		numNodesWanted.requestFocus();
 		srcNodes.setText("");
 		destNodes.setText("");
 		linksToBreak.setText("");
@@ -162,35 +180,18 @@ public class netVisMain extends JFrame{
 			visualize.setEnabled(true);
 			return true;
 		}
+		visualize.setEnabled(false);
 		return false;
-	}
-	
-	private void checkValues()
-	{
-		if(!numNodesWanted.getText().equals("0") && !numDegreeWanted.getText().equals("0"))
-		{
-			//check if degree = numNodes - 1
-			//paint graph
-			
-			//keep the nodes and degrees locked
-			numNodesWanted.setEditable(false);
-			numDegreeWanted.setEditable(false);
-			
-			//enable all other text fields
-			enableAllFields();
-			//initializeGraph();
-			//enable visualize button
-		}
 	}
 	
 	private void enableAllFields()
 	{
 		srcNodes.setEditable(true);
+		srcNodes.requestFocus();
 		destNodes.setEditable(true);
 		linksToBreak.setEditable(true);
 		packetsToSend.setEditable(true);
 		startNew.setEnabled(true);
-		//visualize.setEnabled(true);
 	}
 	
 	private void disableAllFields()
@@ -199,36 +200,11 @@ public class netVisMain extends JFrame{
 		destNodes.setEditable(false);
 		linksToBreak.setEditable(false);
 		packetsToSend.setEditable(false);
-		//startNew.setEnabled(false);
 		visualize.setEnabled(false);		
 	}
 	
 	private void addListeners()
-	{
-		numNodesWanted.addFocusListener(new FocusListener() {
-
-            @Override
-            public void focusGained(FocusEvent e) {
-            }
-
-            @Override
-            public void focusLost(FocusEvent e) {
-                checkValues();
-            }
-        });
-				
-		numDegreeWanted.addFocusListener(new FocusListener() {
-
-            @Override
-            public void focusGained(FocusEvent e) {
-            }
-
-            @Override
-            public void focusLost(FocusEvent e) {
-            	checkValues();
-            }
-        });
-						
+	{			
 		packetsToSend.getDocument().addDocumentListener(new DocumentListener(){
 
 			@Override
@@ -305,80 +281,145 @@ public class netVisMain extends JFrame{
 	
 	}
 	
-	public void getSettings()
-	{
-		String one = numNodesWanted.getText();
-		String two = numDegreeWanted.getText();
-		one = one.replaceAll(",", "");
-		two = two.replaceAll(",", "");
-		
-		numNodes = Integer.parseInt(one);
-		numDegree = Integer.parseInt(two);
-	}
-        
 	public void initializeGraph()
 	{
-		netGraph = new graph();
-
-                getSettings();
-                vertices = new vertex[numNodes];
-                for(int i = 0; i < vertices.length; i++)
-                {
-                    vertices[i] = new vertex("Node" + (i+1));
-                    netGraph.addVertex(vertices[i], true);
-                }
-                addConnections();
-                System.out.println(netGraph.getEdges());
-                
-                // Graph visualization starts in Visualize button actionhandler
+		if(numDegree > numNodes)
+		{
+			JOptionPane.showMessageDialog(mainWindow, "The number of degrees cannot be higher than the number of nodes!", 
+					"ERROR", JOptionPane.WARNING_MESSAGE);
+			numDegree = numNodes - 1;
+			createNewGraphDialog();
+		}
+		else{
+			netGraph = new graph();
+			verticies = new vertex[numNodes];
+			for(int i = 0; i < verticies.length; i++)
+			{
+				verticies[i] = new vertex("Node" + i, numNodes, i);
+				netGraph.addVertex(verticies[i], true);
+			}
+			addConnections();
+			System.out.println(netGraph.getEdges());
+		}
 	}
-        
-        // Gets netGraph - used by GraphicsArea
-        public graph getGraph()
-        {
-            return netGraph;
-        }
-        
-        public void addConnections()
+	
+	public void addConnections()
 	{
 		//Generate a random number between the degree given, D, and number of verticies - 1, R1
-		int randDegreeAmt = randNum(numDegree, vertices.length - 1);
-		int randIndexNum, randWeightNum;
+		int randIndexNum, randWeightNum, randDegreeAmt;
 		//For each vertex in X1
-		for(int i = 0; i < vertices.length; i++)
+		for(int i = 0; i < verticies.length; i++)
 		{
+			randDegreeAmt = randNum(numDegree, verticies.length - 1);
 			//Generate a random number for the weight of the edges, R2
-			randWeightNum = randNum(1, 5);
+			randWeightNum = randNum(1, 9);
 			//while X1.degree does not equal R1 && X1.degree < R1
-			while((vertices[i].getDegree() != randDegreeAmt) && (vertices[i].getDegree() < randDegreeAmt))
+			while((verticies[i].getDegree() != randDegreeAmt) && (verticies[i].getDegree() < randDegreeAmt))
 			{
 				//Generate a random index number for X2
-				randIndexNum = randNum(0, vertices.length - 1);
-				if(netGraph.addEdge(vertices[i], vertices[randIndexNum], randWeightNum));
+				randIndexNum = randNum(0, verticies.length - 1);
+				if(netGraph.addEdge(verticies[i], verticies[randIndexNum], randWeightNum));
 			}
-
 		}	
+		
 	}
-        
-        public int randNum(int min, int max)
+	
+	public int randNum(int min, int max)
 	{
 		Random rand = new Random();
-		int randomNum = rand.nextInt((max - min) + 1) + min;
-		return randomNum;
+			return rand.nextInt((max - min) + 1) + min;
 	}
-        
-        /*
-            Lets GraphicsArea inform graph that packet transmission animation
-            has completed
-        */
-        public void packetDelivered(vertex source, vertex dest)
-        {
-            // Backend stuff here
-        }
-
 	//End of Support Functions
 	
 	//BUILDING THE GUI FUNCTIONS
+	
+	private void createNewGraphDialog()
+	{
+		JPanel westFoundation = new JPanel();
+		westFoundation.setLayout(new BorderLayout());
+			JButton plus = new JButton("+");
+			numNodesWanted = new JTextField(3);
+				numNodesWanted.setEditable(false);
+				numNodesWanted.setText("" + numNodes);
+				numNodesWanted.setHorizontalAlignment(JTextField.CENTER);
+			JButton minus = new JButton("-");
+			plus.addActionListener(new ActionListener(){
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					if(numNodes < MAX_NODES){
+						numNodes++;
+						numNodesWanted.setText("" + numNodes);
+					}
+				}
+				
+			});
+			minus.addActionListener(new ActionListener(){
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					if(numNodes > MIN_NODES){
+						numNodes--;
+						numNodesWanted.setText("" + numNodes);
+					}
+					
+				}
+				
+			});
+		westFoundation.add(new JLabel("Number of Nodes: "), "North");
+		westFoundation.add(minus, "West");
+		westFoundation.add(numNodesWanted, "Center");
+		westFoundation.add(plus, "East");
+		
+		JPanel eastFoundation = new JPanel();
+		eastFoundation.setLayout(new BorderLayout());
+			JButton plus2 = new JButton("+");
+			numDegreeWanted = new JTextField(3);
+				numDegreeWanted.setEditable(false);
+				numDegreeWanted.setText("" + numDegree);
+				numDegreeWanted.setHorizontalAlignment(JTextField.CENTER);
+			JButton minus2 = new JButton("-");
+			plus2.addActionListener(new ActionListener(){
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					if(numDegree < numNodes - 1)
+					{
+						numDegree++;
+						numDegreeWanted.setText("" + numDegree);
+					}
+				}
+				
+			});
+			minus2.addActionListener(new ActionListener(){
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					if(numDegree > MIN_DEGREE){
+						numDegree--;
+						numDegreeWanted.setText("" + numDegree);
+					}
+				}
+				
+			});
+		eastFoundation.add(new JLabel("Minimum degree: "), "North");
+		eastFoundation.add(minus2, "West");
+		eastFoundation.add(numDegreeWanted, "Center");
+		eastFoundation.add(plus2, "East");
+		
+		JPanel myPanel = new JPanel(new BorderLayout());
+		myPanel.add(westFoundation, "North");
+	    myPanel.add(Box.createHorizontalStrut(25));
+		myPanel.add(eastFoundation, "South");
+		
+		int result = JOptionPane.showConfirmDialog(null, myPanel, "Create New Graph", JOptionPane.OK_CANCEL_OPTION);
+		
+		if(result == JOptionPane.OK_OPTION)
+		{
+			initializeGraph();
+			//TODO paint graph
+			graphicsSection.beginVisualization();
+			enableAllFields();
+		}
+		
+	}
+	
 	private void buildMenuBar()
 	{
 		//###MenuBar initializers
@@ -395,21 +436,17 @@ public class netVisMain extends JFrame{
 		
 		menuBar.add(fileMenu);
 	}
-        
+	
 	private void buildSettingsArea()
 	{
 		//Title Creation
-		TitledBorder first, second, third, fourth, fifth, sixth, seventh;
-		Border f1, f2, f3, f4, f5, f6, f7;
-		f1 = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
-		f2 = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
+		TitledBorder third, fourth, fifth, sixth, seventh;
+		Border f3, f4, f5, f6, f7;
 		f3 = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
 		f4 = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
 		f5 = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
 		f6 = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
 		f7 = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
-		first = BorderFactory.createTitledBorder(f1, "Number of Nodes");
-		second = BorderFactory.createTitledBorder(f2, "Minimum Degree");
 		third = BorderFactory.createTitledBorder(f3, "Source Nodes");
 		fourth = BorderFactory.createTitledBorder(f4, "Destination Nodes");
 		fifth = BorderFactory.createTitledBorder(f5, "Links to Break");
@@ -432,28 +469,18 @@ public class netVisMain extends JFrame{
 		foundation.setPreferredSize(new Dimension(400, 120));
 			centerTextArea = new JPanel();
 			centerTextArea.setLayout(new GridLayout(1, 6));
-				numNodesWanted = new JFormattedTextField(formatter);
-				numDegreeWanted = new JFormattedTextField(formatter);
 				srcNodes = new JTextField();
 				destNodes = new JTextField();
 				linksToBreak = new JTextField();
 				packetsToSend = new JTextField("10");
-				numNodesWanted.setValue(0);
-				numDegreeWanted.setValue(0);
-				numNodesWanted.setHorizontalAlignment(SwingConstants.CENTER);
-				numDegreeWanted.setHorizontalAlignment(SwingConstants.CENTER);
 				srcNodes.setHorizontalAlignment(SwingConstants.CENTER);
 				destNodes.setHorizontalAlignment(SwingConstants.CENTER);
 				linksToBreak.setHorizontalAlignment(SwingConstants.CENTER);
 				packetsToSend.setHorizontalAlignment(SwingConstants.CENTER);
-				numNodesWanted.setBorder(first);
-				numDegreeWanted.setBorder(second);
 				srcNodes.setBorder(third);
 				destNodes.setBorder(fourth);
 				linksToBreak.setBorder(fifth);
 				packetsToSend.setBorder(seventh);
-			centerTextArea.add(numNodesWanted, "Center");
-			centerTextArea.add(numDegreeWanted, "Center");
 			centerTextArea.add(srcNodes, "Center");
 			centerTextArea.add(destNodes, "Center");
 			centerTextArea.add(linksToBreak, "Center");
@@ -477,44 +504,34 @@ public class netVisMain extends JFrame{
 			southBtnArea.add(visualize, "Center");
 		foundation.add(southBtnArea, "South");
 		
-                addListeners();
-                disableAllFields();
+		addListeners();
+		disableAllFields();
+			
 	}
-        //END OF BUILDING GUI FUNCTIONS
-        
+	//END OF BUILDING GUI FUNCTIONS
+	
 	private class ActionHandler implements ActionListener
 	{
-
 		public void actionPerformed(ActionEvent e)
 		{
-                    // File->New
-                    // New
-                    if(e.getSource() == newBtn || e.getSource() == startNew)
-                    {
-                            newBtnPressed();
-                    }
-                    
-                    // File->About
-                    if(e.getSource() == aboutBtn)
-                    {
-                            JOptionPane.showMessageDialog(mainWindow, "NetVisulizer was created "
-                                            + "for the CPE400 class at UNR" + "\n\n" + "Created By: " + "\n" 
-                                            + "Mitchell Reyes" + "\n" + "Pattaphol Jirasessakul" + "\n" + "Zachary Waller");
-                    }
-
-                    // Reset Values to Default
-                    if(e.getSource() == resetBtn)
-                    {
-                        resetBtnPressed();
-                    }
-
-                    // Visualize
-                    if(e.getSource() == visualize)
-                    {
-                        initializeGraph();
-                        graphicsSection.beginVisualization();
-                    }
-
+			if(e.getSource() == aboutBtn)
+			{
+				JOptionPane.showMessageDialog(mainWindow, "NetVisulizer was created "
+						+ "for the CPE400 class at UNR" + "\n\n" + "Created By: " + "\n" 
+						+ "Mitchell Reyes" + "\n" + "Pattaphol Jirasessakul" + "\n" + "Zachary Waller");
+			}
+			
+			if(e.getSource() == resetBtn)
+			{
+				resetBtnPressed();
+			}
+			
+			if(e.getSource() == startNew || e.getSource() == newBtn)
+			{
+				newBtnPressed();
+			}
+			
+			
 		}
 	}
 }

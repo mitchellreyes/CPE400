@@ -4,15 +4,50 @@ public class vertex {
 	private ArrayList<edge> neighborhood;
 	private String label;
 	private int degree = 0;
-        
-        public Point position;
+	private int nodeID = 0;
+	int dvTable[][];
 	
-	public vertex(String label)
+	public Point position;
+	
+	public vertex(String label, int numNodes, int nodeID)
 	{
 		this.label = label;
 		this.neighborhood = new ArrayList<edge>();
-                
-                position = new Point();
+		this.nodeID = nodeID;
+		position = new Point();
+	}
+	
+	public void initializeDV(int numNodes)
+	{
+		int neighborCount = this.getNeighborCount();
+		int neighborIndex = 0;
+		
+		dvTable = new int[numNodes][numNodes];
+		
+		for(int[] row: dvTable)
+		{
+			Arrays.fill(row, 99);
+		}
+		
+		dvTable[nodeID][nodeID] = 0;
+		while(neighborCount != 0)
+		{
+			dvTable[nodeID][this.getNeighborID(neighborIndex)] 
+					= neighborhood.get(neighborIndex).getWeight();
+			neighborCount--;
+			neighborIndex++;
+		}
+	}
+	
+	public int getNeighborID(int index)
+	{
+		int nID;
+		nID = neighborhood.get(index).getVertexOne().nodeID;
+		if(this.nodeID == nID)
+		{
+			nID = neighborhood.get(index).getVertexTwo().nodeID;
+		}
+		return nID;
 	}
 	
 	public String getLabel()
