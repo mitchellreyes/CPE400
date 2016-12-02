@@ -3,6 +3,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.text.NumberFormat;
 import java.util.Random;
+import java.util.Set;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -50,6 +51,7 @@ public class netVisMain extends JFrame{
 	//Base Setting number variables
 	protected int numNodes = 2;
 	protected int numDegree = 1;
+	protected int numLinksToBreak = 0;
 	
 	//Graph variables
 	protected graph netGraph;
@@ -283,6 +285,7 @@ public class netVisMain extends JFrame{
 	
 	public void initializeGraph()
 	{
+		System.out.println("Initializing Graph");
 		if(numDegree > numNodes)
 		{
 			JOptionPane.showMessageDialog(mainWindow, "The number of degrees cannot be higher than the number of nodes!", 
@@ -299,29 +302,104 @@ public class netVisMain extends JFrame{
 				netGraph.addVertex(verticies[i], true);
 			}
 			addConnections();
-			System.out.println(netGraph.getEdges());
+			//System.out.println(netGraph.getEdges());
 		}
 	}
 	
 	public void addConnections()
 	{
 		//Generate a random number between the degree given, D, and number of verticies - 1, R1
-		int randIndexNum, randWeightNum, randDegreeAmt;
+		int neighborIndex, randWeightNum, randDegreeAmt;
+		Random rand = new Random();
+		boolean positiveOffset = true;
+		
+		System.out.println("TEST");
+		
 		//For each vertex in X1
-		for(int i = 0; i < verticies.length; i++)
+		for(int vert = 0; vert < verticies.length; vert++)
 		{
-			randDegreeAmt = randNum(numDegree, verticies.length - 1);
-			//Generate a random number for the weight of the edges, R2
-			randWeightNum = randNum(1, 9);
-			//while X1.degree does not equal R1 && X1.degree < R1
-			while((verticies[i].getDegree() != randDegreeAmt) && (verticies[i].getDegree() < randDegreeAmt))
+			// Generates a random number of degrees that can go up to three std dev's away from average
+			randDegreeAmt = numDegree;
+			
+			// Decide whether to increment or decrement degree, 50/50 chance
+			if(rand.nextFloat() < 0.50f)
 			{
-				//Generate a random index number for X2
-				randIndexNum = randNum(0, verticies.length - 1);
-				if(netGraph.addEdge(verticies[i], verticies[randIndexNum], randWeightNum));
+				positiveOffset = false;
+			}
+			
+			// Offset desired degree
+			float[] stdDevs = { 0.341f, 0.136f, 0.021f };
+			for(int dev = 0; dev < 3; dev++)
+			{
+				randDegreeAmt = offset(randDegreeAmt, stdDevs[dev], positiveOffset);
+			}
+			
+			// Clip randDegree between 1 and numNodes - 1
+			if(randDegreeAmt <= 0) randDegreeAmt = 1;
+			if(randDegreeAmt >= numNodes) randDegreeAmt = numNodes - 1;
+			
+			verticies[vert].setDesiredDegree(randDegreeAmt);
+			
+			// Try to generate desired number of connections
+			int iterations = 0;
+			neighborIndex = vert + 1;
+			while(verticies[vert].getDegree() < randDegreeAmt && iterations < 100)
+			{
+				//Generate a random index number for neighbor
+				//randIndexNum = randNum(0, verticies.length - 1);
+				neighborIndex = (neighborIndex + 1) % numNodes;
+				
+				// Skip node if it already has its desired degree or, if desired degree isn't set, skip if it already has numDegree connections
+				// if(vertex desired degree set AND has less connections than desired)
+				if(
+					verticies[neighborIndex].getDesiredDegree() != -1
+					&& verticies[neighborIndex].getDegree() >= verticies[neighborIndex].getDesiredDegree()
+					)
+				{
+					iterations++;
+					break;
+				}
+				// if(vertex desired degree NOT set AND vertex already has numDegree connections
+				else if(
+					verticies[neighborIndex].getDesiredDegree() == -1
+					&& verticies[neighborIndex].getDegree() >= numDegree
+					)
+				{
+					iterations++;
+					break;
+				}
+				
+				//Generate a random number for the weight of the edges, R2		
+				randWeightNum = randNum(1, 9);
+				
+				// Add edge
+				netGraph.addEdge(verticies[vert], verticies[neighborIndex], randWeightNum);
+				
+				iterations++;
 			}
 		}	
 		
+	}
+	
+	// Takes an input, has a probability to increment or decrement input
+	private int offset(int input, float probability, boolean positive)
+	{
+		Random rand = new Random();
+		float randNum = rand.nextFloat();
+		
+		if(randNum <= probability)
+		{
+			if(positive)
+			{
+				return input + 1;
+			}
+			else
+			{
+				return input - 1;
+			}
+		}
+		
+		return input;
 	}
 	
 	public int randNum(int min, int max)
@@ -329,6 +407,86 @@ public class netVisMain extends JFrame{
 		Random rand = new Random();
 			return rand.nextInt((max - min) + 1) + min;
 	}
+	
+	public void breakLinks()
+	{
+		numLinksToBreak = Integer.parseInt(linksToBreak.getText());
+		Object[] edgeArray = netGraph.getEdges().toArray();
+		int randNum = randNum(0, numNodes - 1);
+		
+		for(int i = 0; i < numLinksToBreak; i++)
+		{
+			edge edgeRef = (edge) edgeArray[randNum];
+			// Get random edges until unbroken one is found
+			while (edgeRef.isBroken()) 
+			{
+				randNum = randNum(0, numNodes - 1);
+				edgeRef = (edge) edgeArray[randNum];
+			}
+			
+			edgeRef.setBroken(true);
+			graphicsSection.breakEdge(edgeRef);
+		}
+	}
+	
+	public void setSourceNodes()
+	{
+		String srcNodesWanted = "5";//srcNodes.getText();
+		srcNodesWanted = srcNodesWanted.trim();
+
+		//if its just one integer "#"
+			processInt(srcNodesWanted);
+			graphicsSection.sendPacket(verticies[0], verticies[1]);
+		//if its formatted as "#-#"
+		/*if(srcNodesWanted.contains("-")){
+			splitNums = srcNodesWanted.split("-");
+			for(int i = 0; i < splitNums.length; i++){
+				System.out.println(splitNums[i]);
+			}
+		}
+		if(srcNodesWanted.contains(",")){
+			splitNums = srcNodesWanted.split(",");
+			for(int i = 0; i < splitNums.length; i++){verticies.length
+				splitNums[i] = splitNums[i].trim();
+				System.out.println(splitNums[i]);
+			}
+		}*/
+		//if its formatted as "#, #, #"
+		//else non format
+			//throw error
+	}
+	
+	private void processInt(String s){
+		String vertexLabel;
+		for(int i = 0; i < graphicsSection.vertices.size(); i++){
+			vertexLabel = graphicsSection.vertices.get(i).getLabel();
+			vertexLabel = vertexLabel.replaceAll("Node", "");
+			vertexLabel = vertexLabel.trim();
+			if(vertexLabel.equals(s)){
+				graphicsSection.vertices.get(i).setColor(Color.BLUE);
+				//graphicsSection.vertices.get(i).setLabel(new String("[SRC] " + graphicsSection.vertices.get(i).getLabel()));
+			}
+		}
+	}
+	
+	public boolean isInteger(String s) {
+	    return isInteger(s,10);
+	}
+
+	public boolean isInteger(String s, int radix) {
+	    if(s.isEmpty()) return false;
+	    for(int i = 0; i < s.length(); i++) {
+	        if(i == 0 && s.charAt(i) == '-') {
+				JOptionPane.showMessageDialog(mainWindow, "Source Nodes cannot be negative!", 
+						"ERROR", JOptionPane.WARNING_MESSAGE);
+	            return false;
+	            //else continue;
+	        }
+	        if(Character.digit(s.charAt(i),radix) < 0) return false;
+	    }
+	    return true;
+	}
+	
 	//End of Support Functions
 	
 	//BUILDING THE GUI FUNCTIONS
@@ -360,7 +518,12 @@ public class netVisMain extends JFrame{
 						numNodes--;
 						numNodesWanted.setText("" + numNodes);
 					}
-					
+					//TODO add this to the new code
+					if(numNodes <= numDegree)
+					{
+						numDegree = numNodes - 1;
+						numDegreeWanted.setText("" + numDegree);
+					}
 				}
 				
 			});
@@ -398,7 +561,7 @@ public class netVisMain extends JFrame{
 				}
 				
 			});
-		eastFoundation.add(new JLabel("Minimum degree: "), "North");
+		eastFoundation.add(new JLabel("Average degree: "), "North");
 		eastFoundation.add(minus2, "West");
 		eastFoundation.add(numDegreeWanted, "Center");
 		eastFoundation.add(plus2, "East");
@@ -413,8 +576,9 @@ public class netVisMain extends JFrame{
 		if(result == JOptionPane.OK_OPTION)
 		{
 			initializeGraph();
-			//TODO paint graph
 			graphicsSection.beginVisualization();
+			//TODO REMOVE THIS!!
+			//setSourceNodes();
 			enableAllFields();
 		}
 		
@@ -531,6 +695,12 @@ public class netVisMain extends JFrame{
 				newBtnPressed();
 			}
 			
+			if(e.getSource() == visualize){
+				graphicsSection.stopVisualization();
+				graphicsSection.beginVisualization();
+				breakLinks();
+				setSourceNodes();
+			}
 			
 		}
 	}
