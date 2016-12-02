@@ -1,11 +1,15 @@
+import java.sql.Timestamp;
 import java.util.*;
 
-public class vertex {
+public class vertex implements Runnable {
 	private ArrayList<edge> neighborhood;
 	private String label;
 	private int degree = 0;
 	private int nodeID = 0;
-	int dvTable[][];
+	private int numNodes = 0;
+	private DVTable dvTable;
+	
+	private boolean linkCostsChanged;
 	
 	public Point position;
 	
@@ -14,28 +18,87 @@ public class vertex {
 		this.label = label;
 		this.neighborhood = new ArrayList<edge>();
 		this.nodeID = nodeID;
+		this.numNodes = numNodes;
 		position = new Point();
+		dvTable = new DVTable(numNodes);
+		
+		linkCostsChanged = false;
 	}
 	
-	public void initializeDV(int numNodes)
+	@Override
+	public void run()
+	{
+		initializeDV();
+		loopDV();
+		
+	}
+	
+	public void initializeDV()
 	{
 		int neighborCount = this.getNeighborCount();
 		int neighborIndex = 0;
-		
-		dvTable = new int[numNodes][numNodes];
-		
-		for(int[] row: dvTable)
+
+		for(int[] row: dvTable.costs)
 		{
 			Arrays.fill(row, 99);
 		}
 		
-		dvTable[nodeID][nodeID] = 0;
+		dvTable.costs[nodeID][nodeID] = 0;
 		while(neighborCount != 0)
 		{
-			dvTable[nodeID][this.getNeighborID(neighborIndex)] 
+			dvTable.costs[nodeID][this.getNeighborID(neighborIndex)] 
 					= neighborhood.get(neighborIndex).getWeight();
 			neighborCount--;
 			neighborIndex++;
+		}
+	}
+	
+	public void loopDV()
+	{
+		while(true)
+		{
+			// Wait until link cost changes
+			// while(!linkCostsChanged);
+			
+			for(int neighborIndex = 0; neighborIndex < this.getNeighborCount(); neighborIndex++)
+			{
+				sendDV(this.getNeighborVertex(neighborIndex));
+				//linkCostsChanged = false;
+			}
+		}
+	}
+	
+	public void sendDV(vertex neighbor)
+	{
+		neighbor.receiveDV(this.nodeID, dvTable.costs[this.nodeID]);
+	}
+	
+	public void receiveDV(int senderID, int[] dvRow)
+	{
+		
+		
+		// Copy sender DV Row 
+		this.dvTable.costs[senderID] = Arrays.copyOf(dvRow, numNodes);
+		// Copy timestamps
+		
+		// For each destination in dvRow
+		// if distance vector cost + edge weight < destination cost in dvTable row
+		// then dvTable.cost(dst) = destination vector cost + edge cost
+		// 		dvTable.timestamp(dst) = time.now
+		
+		// Update this DV Row
+		for(int index = 0; index < numNodes; index++)
+		{
+			// if index is neighbor
+			// {
+				if((dvRow[index] + this.getNeighbor(index).getWeight()) < dvTable.costs[this.nodeID][index])
+				{
+					dvTable.costs[this.nodeID][index] = dvRow[index] + this.getNeighbor(index).getWeight();
+					// timestamp
+				}
+			// }
+			// else
+			//  Non neighbor case
 		}
 	}
 	
@@ -78,6 +141,20 @@ public class vertex {
 		return this.neighborhood.get(index);
 	}
 	
+	public vertex getNeighborVertex(int index)
+	{
+		edge nEdge = this.neighborhood.get(index);
+		
+		if(nEdge.getVertexOne().equals(this) == false )
+		{
+			return nEdge.getVertexOne();
+		}
+		else
+		{
+			return nEdge.getVertexTwo();
+		}
+	}
+	
 	edge removeNeighbor(int index)
 	{
 		degree--;
@@ -108,4 +185,16 @@ public class vertex {
 		return this.label.equals(v.label);
 	}
 	
+	
+	public class DVTable
+	{
+		public int[][] costs;
+		public Timestamp[][] timestamps;
+		
+		public DVTable(int numNodes)
+		{
+			costs = new int[numNodes][numNodes];
+			timestamps = new Timestamp[numNodes][numNodes];
+		}
+	}
 }
