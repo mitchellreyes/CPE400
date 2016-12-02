@@ -9,7 +9,6 @@ import java.awt.event.ActionListener;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
-import java.time.*;
 import java.util.Set;
 
 public class GraphicsArea extends JPanel
@@ -483,20 +482,19 @@ public class GraphicsArea extends JPanel
         */
         private class ActionHandler implements ActionListener
         {
-            private Clock clock;
-            private Instant prevTime;
+            private long prevTime;
             
             public ActionHandler()
             {
-                clock = Clock.systemUTC();
-                prevTime = clock.instant();
+                prevTime = System.currentTimeMillis();
             }
             
             @Override
             public void actionPerformed(ActionEvent e)
             {
-                Instant curTime = clock.instant();
-                deltaT = (curTime.toEpochMilli() - prevTime.toEpochMilli()) / 1000.0d;
+                long curTime = System.currentTimeMillis();
+
+                deltaT = (curTime - prevTime) / 1000.0d;
                 prevTime = curTime;
                 
                 repaint();
