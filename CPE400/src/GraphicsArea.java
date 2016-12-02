@@ -16,8 +16,8 @@ public class GraphicsArea extends JPanel
         private static final long serialVersionUID = 1L;
         private Graphics graphics;
         
-        private ArrayList<VertexGraphic> vertices;
-        private ArrayList<EdgeGraphic> edges;
+        public ArrayList<VertexGraphic> vertices;
+        public ArrayList<EdgeGraphic> edges;
         private ArrayList<PacketGraphic> packets;
         
         private netVisMain parent;
@@ -65,8 +65,14 @@ public class GraphicsArea extends JPanel
             timer.stop();
             timer = null;
             
+            for(EdgeGraphic e : edges)
+            {
+            	e.edgeRef.setBroken(false);
+            }
+            
             vertices.clear();
             edges.clear();
+            packets.clear();
             
             repaint();
         }
@@ -109,12 +115,8 @@ public class GraphicsArea extends JPanel
             // Place edge graphics
             for(edge e : edgeSet)
             {
-                edges.add(new EdgeGraphic
-                    (
-                        e.getVertexOne().position,
-                        e.getVertexTwo().position,
-                        e.getWeight()
-                    ));
+            	e.graphic = new EdgeGraphic(e);
+                edges.add(e.graphic);
             }
         }
         
@@ -147,6 +149,14 @@ public class GraphicsArea extends JPanel
             // TODO: Fix this hack
             // If edge isn't found return 1 so nothing breaks
             return 1;
+        }
+        
+        /*
+         	Recolor Edge
+        */
+        public void breakEdge(edge e)
+        {
+        	e.setBroken(true);
         }
         
         /*
@@ -193,14 +203,14 @@ public class GraphicsArea extends JPanel
             Drawable Classes
         */
         
-        private abstract class Drawable
+        public abstract class Drawable
         {
             Color color;
             
             public abstract void draw();
         }
         
-        private class VertexGraphic extends Drawable
+        public class VertexGraphic extends Drawable
         {
             private final Color DEFAULT_COLOR = Color.RED;
             private final int DEFAULT_SIZE = 45;
@@ -227,6 +237,11 @@ public class GraphicsArea extends JPanel
                 Get/Set
             */
             
+            public void setLabel(String newLabel)
+            {
+            	label = newLabel;
+            }
+            
             public void setColor(Color newColor)
             {
                 color = newColor;
@@ -240,6 +255,11 @@ public class GraphicsArea extends JPanel
             public Point getPosition()
             {
                 return new Point(position.x, position.y);
+            }
+            
+            public String getLabel()
+            {
+            	return label;
             }
             
             /*
@@ -271,33 +291,39 @@ public class GraphicsArea extends JPanel
             }
         }
         
-        private class EdgeGraphic extends Drawable
+        public class EdgeGraphic extends Drawable
         {
             private final Color DEFAULT_COLOR = Color.BLACK;
             
             private Point start;
             private Point end;
             
-            private int weight;
+            private edge edgeRef;
+            
+            private vertex startVertex;
+            private vertex endVertex;
             
             /*
                 Parameterized Constructor
             */
-            public EdgeGraphic(Point newStart, Point newEnd, int newWeight)
+            public EdgeGraphic(edge e)
             {
                 color = DEFAULT_COLOR;
                 
-                start = new Point(newStart);
-                end = new Point(newEnd);
+                edgeRef = e;
                 
-                weight = newWeight;
+                startVertex = e.getVertexOne();
+                endVertex = e.getVertexTwo();
+                
+                start = startVertex.position;
+                end = endVertex.position;
             }
             
             /*
                 Get/Set
             */
             
-            private void setColor(Color newColor)
+            public void setColor(Color newColor)
             {
                 color = newColor;
             }
@@ -314,7 +340,7 @@ public class GraphicsArea extends JPanel
 
                 // Draw weight
                 java.awt.FontMetrics fm = graphics.getFontMetrics();
-                int wide = fm.charWidth(weight);
+                int wide = fm.charWidth(edgeRef.getWeight());
                 int tall = fm.getAscent();
                 Point wPos = new Point
                         (
@@ -324,11 +350,11 @@ public class GraphicsArea extends JPanel
                 
                 graphics.clearRect(wPos.x-wide/2, wPos.y-tall/2, wide, tall);
                 
-                graphics.drawString(""+weight, wPos.x-wide/3, wPos.y+tall/3);
+                graphics.drawString(""+edgeRef.getWeight(), wPos.x-wide/3, wPos.y+tall/3);
             }
         }
         
-        private class PacketGraphic extends Drawable
+        public class PacketGraphic extends Drawable
         {
             // Color color is outline color
             private final Color DEFAULT_COLOR = Color.BLACK;
