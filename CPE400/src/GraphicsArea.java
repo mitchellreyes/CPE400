@@ -220,8 +220,8 @@ public class GraphicsArea extends JPanel
                 position = new Point(newPosition);
                 label = newLabel;
                 
-                System.out.println
-                    ("Creating vertex " + label + " at: " + position.x + "," + position.y);
+                //System.out.println
+                    //("Creating vertex " + label + " at: " + position.x + "," + position.y);
             }
             
             /*

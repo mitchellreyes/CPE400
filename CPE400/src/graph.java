@@ -1,20 +1,20 @@
 import java.util.*;
 
 public class graph {
-	private HashMap<String, vertex> vertices;
+	private HashMap<String, vertex> verticies;
 	private HashMap<Integer, edge> edges;
 	
 	public graph(){
-		this.vertices = new HashMap<String, vertex>();
+		this.verticies = new HashMap<String, vertex>();
 		this.edges = new HashMap<Integer, edge>();
 	}
 	
-	public graph(ArrayList<vertex> vertices)
+	public graph(ArrayList<vertex> verticies)
 	{
-		this.vertices = new HashMap<String, vertex>();
+		this.verticies = new HashMap<String, vertex>();
 		this.edges = new HashMap<Integer, edge>();
-		for(vertex v : vertices){
-			this.vertices.put(v.getLabel(), v);
+		for(vertex v : verticies){
+			this.verticies.put(v.getLabel(), v);
 		}
 	}
 	
@@ -42,6 +42,11 @@ public class graph {
 		return true;
 	}
 	
+	public HashMap<String, vertex> getVertices()
+    {
+        return verticies;
+    }
+	
 	public boolean containsEdge(edge otherEdge)
 	{
 		if(otherEdge.getVertexOne() == null || otherEdge.getVertexTwo() == null)
@@ -59,22 +64,17 @@ public class graph {
 	
 	public boolean containsVertex(vertex Vertex)
 	{
-		return this.vertices.get(Vertex.getLabel()) != null;
+		return this.verticies.get(Vertex.getLabel()) != null;
 	}
 	
 	public vertex getVertex(String label)
 	{
-		return vertices.get(label);
+		return verticies.get(label);
 	}
 	
-        public HashMap<String, vertex> getVertices()
-        {
-            return vertices;
-        }
-        
 	public boolean addVertex(vertex Vertex, boolean overWrite)
 	{
-		vertex selected = this.vertices.get(Vertex.getLabel());
+		vertex selected = this.verticies.get(Vertex.getLabel());
 		if(selected != null){
 			if(!overWrite)
 			{
@@ -86,12 +86,12 @@ public class graph {
 			}
 		}
 		
-		vertices.put(Vertex.getLabel(), Vertex);
+		verticies.put(Vertex.getLabel(), Vertex);
 		return true;
 	}
 	
 	public vertex removeVertex(String label){
-		vertex Vertex = vertices.remove(label);
+		vertex Vertex = verticies.remove(label);
 		while(Vertex.getNeighborCount() > 0)
 		{
 			this.removeEdge(Vertex.getNeighbor(0));
@@ -102,7 +102,7 @@ public class graph {
 	
 	public Set<String> vertexKeys()
 	{
-		return this.vertices.keySet();
+		return this.verticies.keySet();
 	}
 	
 	public Set<edge> getEdges()
