@@ -4,6 +4,7 @@ import java.util.*;
 public class vertex implements Runnable {
 	private ArrayList<edge> neighborhood;
 	private String label;
+	private int desiredDegree = -1;
 	private int degree = 0;
 	private int nodeID = 0;
 	private int numNodes = 0;
@@ -121,6 +122,16 @@ public class vertex implements Runnable {
 	public int getDegree()
 	{
 		return degree;
+	}
+	
+	public int getDesiredDegree()
+	{
+		return desiredDegree;
+	}
+	
+	public void setDesiredDegree(int newDegree)
+	{
+		desiredDegree = newDegree;
 	}
 	
 	public void addNeighbor(edge Edge)
