@@ -1,7 +1,7 @@
 import java.util.ArrayList;
 
+
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -9,7 +9,6 @@ import java.awt.event.ActionListener;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
-import java.util.Set;
 
 public class GraphicsArea extends JPanel
 {
@@ -35,6 +34,10 @@ public class GraphicsArea extends JPanel
             vertices = new ArrayList<>();
             edges = new ArrayList<>();
             packets = new ArrayList<>();
+        }
+        
+        public boolean isRunning(){
+        	return visualizationBegan;
         }
         
         /*
@@ -145,9 +148,6 @@ public class GraphicsArea extends JPanel
                     return e.getWeight();
                 }
             }
-            
-            // TODO: Fix this hack
-            // If edge isn't found return 1 so nothing breaks
             return 1;
         }
         
@@ -411,14 +411,6 @@ public class GraphicsArea extends JPanel
 
                 position = new Point(source);
                 timeElapsed = 0;
-
-                System.out.println
-                    (
-                        "Sending packet from "
-                        + sourceVertex.getLabel() + " to "
-                        + destVertex.getLabel()
-                        + "; Weight = " + weight
-                    );
             }
             
             /*

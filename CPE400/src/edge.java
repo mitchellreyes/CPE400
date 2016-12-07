@@ -73,7 +73,9 @@ public class edge{
 		{
 			prevWeight = weight;
 			weight = 99;
-			graphic.setColor(Color.red);
+			if(graphic != null){
+				graphic.setColor(Color.red);
+			}
 			isBroken = true;
 		}
 		else if(isBroken == true && broke == false)

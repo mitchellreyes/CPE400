@@ -1,9 +1,10 @@
 import java.awt.*;
 
+
 import java.awt.event.*;
 import java.text.NumberFormat;
 import java.util.Random;
-import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -56,6 +57,7 @@ public class netVisMain extends JFrame{
 	//Graph variables
 	protected graph netGraph;
 		protected vertex verticies[];
+		Thread t[];
 	
 	public static void main(String[] args) {
 		new netVisMain();
@@ -131,9 +133,20 @@ public class netVisMain extends JFrame{
 		if(n == JOptionPane.YES_OPTION)
 		{
 			resetAllSettings();
-			//TODO repaint canvas to blank
 			graphicsSection.stopVisualization();
+			if(verticies != null && t != null){
+				for(int i = 0; i < verticies.length; i++){
+					verticies[i].setRunning(false);
+					try {
+						t[i].join();
+						verticies[i].getMyDVTable().writeTableToFile();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			}
 			netGraph = null;
+				
 			createNewGraphDialog();
 		}
 	}
@@ -151,7 +164,6 @@ public class netVisMain extends JFrame{
 		if(n == JOptionPane.YES_OPTION)
 		{
 			resetToDefault();
-			//TODO repaint canvas to original graph
 		}
 	}
 	//END of Button Pressed Functions
@@ -285,7 +297,6 @@ public class netVisMain extends JFrame{
 	
 	public void initializeGraph()
 	{
-		System.out.println("Initializing Graph");
 		if(numDegree > numNodes)
 		{
 			JOptionPane.showMessageDialog(mainWindow, "The number of degrees cannot be higher than the number of nodes!", 
@@ -301,8 +312,19 @@ public class netVisMain extends JFrame{
 				verticies[i] = new vertex("Node" + i, numNodes, i);
 				netGraph.addVertex(verticies[i], true);
 			}
+			for(int i = 0; i < verticies.length; i++){
+				verticies[i].addAllVerticies(verticies);
+			}
 			addConnections();
-			//System.out.println(netGraph.getEdges());
+			t = new Thread[verticies.length];
+			for(int i = 0; i < verticies.length; i++){
+			}
+			for(int i = 0; i < verticies.length; i++){
+				verticies[i].addDVTable(new DVTable(verticies, numNodes, verticies[i]));
+			}
+			for(int i = 0; i < verticies.length; i++){
+				t[i] = new Thread(verticies[i]);
+			}
 		}
 	}
 	
@@ -312,9 +334,7 @@ public class netVisMain extends JFrame{
 		int neighborIndex, randWeightNum, randDegreeAmt;
 		Random rand = new Random();
 		boolean positiveOffset = true;
-		
-		System.out.println("TEST");
-		
+				
 		//For each vertex in X1
 		for(int vert = 0; vert < verticies.length; vert++)
 		{
@@ -412,62 +432,210 @@ public class netVisMain extends JFrame{
 	{
 		numLinksToBreak = Integer.parseInt(linksToBreak.getText());
 		Object[] edgeArray = netGraph.getEdges().toArray();
-		int randNum = randNum(0, numNodes - 1);
-		
+		int randNum = randNum(0, numNodes - 2);
+		vertex src, dest;
 		for(int i = 0; i < numLinksToBreak; i++)
 		{
 			edge edgeRef = (edge) edgeArray[randNum];
 			// Get random edges until unbroken one is found
 			while (edgeRef.isBroken()) 
 			{
-				randNum = randNum(0, numNodes - 1);
+				randNum = randNum(0, numNodes - 2);
 				edgeRef = (edge) edgeArray[randNum];
 			}
-			
 			edgeRef.setBroken(true);
+			edgeRef.setWeight(-1);
+			src = edgeRef.getVertexOne();
+			dest = edgeRef.getVertexTwo();
+			for(int j = 0; j < verticies.length; j++){
+				verticies[j].getMyDVTable().getEntry(src, dest).setWeight(-1);
+				verticies[j].getMyDVTable().getEntry(dest, src).setWeight(-1);
+			}
 			graphicsSection.breakEdge(edgeRef);
 		}
+		
 	}
+
+    private void setDestNodes()
+    {
+        
+        String destNodesWanted = destNodes.getText();
+        String[] splitNums = new String [destNodesWanted.length()];
+        String vertexLabel;
+            char colorCode = 'g';
+            
+	destNodesWanted = destNodesWanted.trim();
+           
+            if(destNodesWanted.contains(",")){
+		splitNums = destNodesWanted.split(",");
+		for(int i = 0; i < splitNums.length; i++){
+			System.out.println("split" + splitNums[i]);
+		}
+                    processIntC(splitNums,colorCode);
+	}
+            
+            else if(destNodesWanted.contains("-")){
+		splitNums = destNodesWanted.split("-");
+		for(int i = 0; i < splitNums.length; i++){
+			System.out.println("split" + splitNums[i]);
+		}
+                    
+                     processIntH(splitNums,colorCode);
+	}
+            
+            else{
+                for(int i = 0; i < graphicsSection.vertices.size(); i++){
+		vertexLabel = graphicsSection.vertices.get(i).getLabel();
+		vertexLabel = vertexLabel.replaceAll("Node", "");
+		vertexLabel = vertexLabel.trim();
+		if(vertexLabel.equals(destNodesWanted)){
+			graphicsSection.vertices.get(i).setColor(Color.GREEN);
+			//graphicsSection.vertices.get(i).setLabel(new String("[SRC] " + graphicsSection.vertices.get(i).getLabel()));
+		}
+	}
+                
+                
+                
+            }
+            
+}
+
 	
 	public void setSourceNodes()
 	{
-		String srcNodesWanted = "5";//srcNodes.getText();
+		String srcNodesWanted = srcNodes.getText();
+        String[] splitNums = new String [srcNodesWanted.length()];
+        String vertexLabel;
+        char colorCode = 'b';
+                
 		srcNodesWanted = srcNodesWanted.trim();
-
-		//if its just one integer "#"
-			processInt(srcNodesWanted);
-			graphicsSection.sendPacket(verticies[0], verticies[1]);
-		//if its formatted as "#-#"
-		/*if(srcNodesWanted.contains("-")){
-			splitNums = srcNodesWanted.split("-");
+        if(srcNodesWanted.contains(",")){
+        	splitNums = srcNodesWanted.split(",");
 			for(int i = 0; i < splitNums.length; i++){
-				System.out.println(splitNums[i]);
+				System.out.println("split" + splitNums[i]);
 			}
+            processIntC(splitNums,colorCode);
 		}
-		if(srcNodesWanted.contains(",")){
-			splitNums = srcNodesWanted.split(",");
-			for(int i = 0; i < splitNums.length; i++){verticies.length
-				splitNums[i] = splitNums[i].trim();
-				System.out.println(splitNums[i]);
+        else if(srcNodesWanted.contains("-")){
+        	splitNums = srcNodesWanted.split("-");
+			for(int i = 0; i < splitNums.length; i++){
+				System.out.println("split" + splitNums[i]);
+			}            
+            processIntH(splitNums,colorCode);
+		}    
+        else{
+        	for(int i = 0; i < graphicsSection.vertices.size(); i++){
+        		vertexLabel = graphicsSection.vertices.get(i).getLabel();
+        		vertexLabel = vertexLabel.replaceAll("Node", "");
+        		vertexLabel = vertexLabel.trim();
+			if(vertexLabel.equals(srcNodesWanted)){
+				graphicsSection.vertices.get(i).setColor(Color.BLUE);
 			}
-		}*/
-		//if its formatted as "#, #, #"
-		//else non format
-			//throw error
+		}        
+                }       
 	}
 	
-	private void processInt(String s){
+	private void processIntC(String [] split, char colorCode){
 		String vertexLabel;
-		for(int i = 0; i < graphicsSection.vertices.size(); i++){
-			vertexLabel = graphicsSection.vertices.get(i).getLabel();
-			vertexLabel = vertexLabel.replaceAll("Node", "");
-			vertexLabel = vertexLabel.trim();
-			if(vertexLabel.equals(s)){
-				graphicsSection.vertices.get(i).setColor(Color.BLUE);
-				//graphicsSection.vertices.get(i).setLabel(new String("[SRC] " + graphicsSection.vertices.get(i).getLabel()));
-			}
-		}
+                 System.out.println("color code is " + colorCode);
+                for(int i = 0; i < graphicsSection.vertices.size(); i++)
+                {
+                	vertexLabel = graphicsSection.vertices.get(i).getLabel();
+                	vertexLabel = vertexLabel.replaceAll("Node", "");
+	        		vertexLabel = vertexLabel.trim();
+		                  
+                    //for each vertex labels, go thru all the elements in the split array to see if that label should be highlighted or not
+                      for (int splitIndex = 0; splitIndex < split.length; splitIndex++)
+                      {
+                          if(vertexLabel.equals(split[splitIndex]))
+                          {
+                            if(colorCode == 'b')
+                            {      
+                              graphicsSection.vertices.get(i).setColor(Color.BLUE);
+                            }        
+                            else if (colorCode == 'g' &&  graphicsSection.vertices.get(i).color.getBlue() != 255)
+                            {   
+                                graphicsSection.vertices.get(i).setColor(Color.GREEN);
+                            }
+                          
+                          }
+
+                      }
+	         }
 	}
+
+	
+	private void processIntH(String [] split, char colorCode)
+    {
+        String vertexLabel;
+      
+        String temp[];
+        int zeroStart = Integer.parseInt(split[1])+1;
+        int range =  Integer.parseInt(split[1]) -  Integer.parseInt(split[0])+1 ;
+        int start = Integer.parseInt(split[0]);
+        
+        //check first spot of split, which contains all the number of source nodes  in the format of "x - y"
+        // if its "0 to y"
+        if (Integer.parseInt(split[0]) == 0)
+        {
+            //if the starting node is zero, allocate it this much space
+            temp = new String [zeroStart];
+            for (int index = 0; index < Integer.parseInt(split[1]) + 1; index++)
+            {
+                temp[index] = " "+ index;
+                temp[index] = temp[index].trim();
+            }
+        }
+        else 
+        {
+            /*
+            else the starting node is greater than zero
+            so allocate it the amount of number of the starting source node
+            minus the number of the last source node
+            */
+            temp = new String [range];  
+                if (Integer.parseInt(split[0]) > 1)
+                {
+                    for (int index = 0; index < temp.length; index++)
+                    {
+                    	temp[index] = " "+ start;
+                    	temp[index] = temp[index].trim();  
+                        start++;
+                    }
+                }
+               else if (Integer.parseInt(split[0]) == 1)
+                {
+                    for (int index = 0; index < Integer.parseInt(split[1]); index++)
+                    {     
+                        temp[index] = " "+ start;
+                        temp[index] = temp[index].trim();
+                        start++;
+                    }
+                }
+            }
+  
+         for(int i = 0; i < graphicsSection.vertices.size(); i++)
+            {
+        	 	vertexLabel = graphicsSection.vertices.get(i).getLabel();
+        	 	vertexLabel = vertexLabel.replaceAll("Node", "");
+        	 	vertexLabel = vertexLabel.trim();  
+                //for each vertex labels, go thru all the elements in the split array to see if that label should be highlighted or not
+                  for (int splitIndex = 0; splitIndex < temp.length; splitIndex++)
+                  {
+                      if(Integer.parseInt(vertexLabel) == Integer.parseInt(temp[splitIndex]) )
+                      {  
+                           if(colorCode == 'b')
+                            {      
+                              graphicsSection.vertices.get(i).setColor(Color.BLUE);
+                            }
+                            else if (colorCode == 'g' &&  graphicsSection.vertices.get(i).color.getBlue() != 255)
+                            {
+                                graphicsSection.vertices.get(i).setColor(Color.GREEN);
+                            }
+                      }
+                  }
+         }
+    }
 	
 	public boolean isInteger(String s) {
 	    return isInteger(s,10);
@@ -518,7 +686,6 @@ public class netVisMain extends JFrame{
 						numNodes--;
 						numNodesWanted.setText("" + numNodes);
 					}
-					//TODO add this to the new code
 					if(numNodes <= numDegree)
 					{
 						numDegree = numNodes - 1;
@@ -572,16 +739,36 @@ public class netVisMain extends JFrame{
 		myPanel.add(eastFoundation, "South");
 		
 		int result = JOptionPane.showConfirmDialog(null, myPanel, "Create New Graph", JOptionPane.OK_CANCEL_OPTION);
-		
+		int randVert;
 		if(result == JOptionPane.OK_OPTION)
 		{
 			initializeGraph();
 			graphicsSection.beginVisualization();
-			//TODO REMOVE THIS!!
-			//setSourceNodes();
 			enableAllFields();
 		}
-		
+		for(int i = 0; i < numNodes; i++){
+			t[i].start();
+		}
+		while(graphicsSection.isRunning()){
+			randVert = randNum(0, numNodes-1);
+			for(int i = 0; i < numNodes; i++){
+				verticies[i].sendMyDVTableRow();
+				
+				while(randVert == i){
+					randVert = randNum(0, numNodes-1);
+				}
+				try {
+					TimeUnit.SECONDS.sleep(6);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
+				graphicsSection.sendPacket(verticies[i], verticies[randVert]);
+			}
+		}
+	}
+	
+	public int getNumPackets(){
+		return Integer.parseInt(packetsToSend.getText());
 	}
 	
 	private void buildMenuBar()
@@ -696,10 +883,9 @@ public class netVisMain extends JFrame{
 			}
 			
 			if(e.getSource() == visualize){
-				graphicsSection.stopVisualization();
-				graphicsSection.beginVisualization();
-				breakLinks();
 				setSourceNodes();
+				setDestNodes();
+				breakLinks();
 			}
 			
 		}
